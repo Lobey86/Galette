@@ -286,7 +286,7 @@ $lang["Vous venez d'être inscrit sur le système de gestion d'adhérents de l'asso
 $lang["Il vous est désormais possible de suivre en temps réel l'état de votre adhésion"]="It is now possible to follow in real time the state of your subscription";
 $lang["et de mettre à jour vos coordonnées par l'interface web prévue à cet effet."]="and to update your preferences from the web interface.";
 $lang["Veuillez vous identifier à cette adresse :"]="Please login at this address:";
-$lang["A trés bientôt !"]="See you soon!";
+$lang["A très bientôt !"]="See you soon!";
 $lang["(ce mail est un envoi automatique)"]="(this mail was sent automatically)";
 $lang["M."]="Mr.";
 $lang["Mme."]="Mrs.";
@@ -373,7 +373,7 @@ $lang["Demande d'envoi de mot de passe mais email vide. Login :"]="Someone asked
 $lang["Envoyez-moi mon mot de passe"]="Send me my password";
 $lang["Un problème est survenu dans l'envoi du mot de passe pour le compte :"]="A problem occured while sending password for account:";
 $lang["Mot de passe envoyé. Login :"]="Password sent. Login:";
-$lang["Quelqu'un (sûrement vous) à demandé à ce que l'on vous renvoie votre mot de passe."]="Someone (probably you) asked to recover your passoword.";
+$lang["Quelqu'un (sûrement vous) a demandé que l'on vous renvoie votre mot de passe."]="Someone (probably you) asked to recover your passoword.";
 $lang["Mot de passe perdu ?"]="Lost your password?";
 $lang["Récupération de mot de passe"]="Password recovery";
 $lang["Retour à l'identification"]="Back to login page";

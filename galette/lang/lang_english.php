@@ -379,4 +379,5 @@ $lang["Récupération de mot de passe"]="Password recovery";
 $lang["Retour à l'identification"]="Back to login page";
 
 $lang["Je souhaite apparaître dans la liste des membres :"]="Be visible in the<br /> members list :";
+$lang["Voulez-vous vraiment supprimer cet adhérent de la base, ceci supprimera aussi l'historique de ses cotisations. Pour éviter cela vous pouvez simplement désactiver le compte.\n\nVoulez-vous tout de même supprimer cet adhérent ?"]="Do you really want to delete this member from the database. This will also delete dues history. To avoid this, you can simply deactivate this account.\n\nDo you still want to delete this member ?";
 ?>

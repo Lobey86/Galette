@@ -1,4 +1,4 @@
-<? 
+<?php
 /* ajouter_adherent.php
  * - Saisie d'un adhérent
  * Copyright (c) 2004 Frédéric Jaqcuot
@@ -149,7 +149,8 @@
 					  	if (ereg("^([0-9]{2})/([0-9]{2})/([0-9]{4})$", $post_value, $array_jours) || $post_value=="")
 					  	{
 							if (checkdate($array_jours[2],$array_jours[1],$array_jours[3]) || $post_value=="")
-								$value=$DB->DBDate(mktime(0,0,0,$array_jours[2],$array_jours[1],$array_jours[3]));
+//								$value=$DB->DBDate(mktime(0,0,0,$array_jours[2],$array_jours[1],$array_jours[3]));
+								$value = $DB->DBDate($array_jours[3].'/'.$array_jours[2].'/'.$array_jours[1]);
 							else
 								$error_detected .= "<LI>"._T("- Date non valide !")."</LI>";
 						}
@@ -237,7 +238,8 @@
 
 				$date_fin = get_echeance($DB, $id_adh);
 				if ($date_fin!="")
-					$date_fin_update = $DB->DBDate(mktime(0,0,0,$date_fin[1],$date_fin[0],$date_fin[2]));
+//					$date_fin_update = $DB->DBDate(mktime(0,0,0,$date_fin[1],$date_fin[0],$date_fin[2]));
+					$date_fin_update = $DB->DBDate($date_fin[2].'/'.$date_fin[1].'/'.$date_fin[0]);
 				else
 					$date_fin_update = "NULL";
 				$requete = "UPDATE ".PREFIX_DB."adherents

@@ -214,7 +214,7 @@
 						<FORM action="mailing_adherents.php" method="get" name="filtre">
 						 	<? echo _T("Afficher :"); ?>&nbsp;
 							<SELECT name="filtre" onChange="form.submit()">
-								<OPTION value="0"<? isSelected("0",$_SESSION["filtre_adh"]) ?>><? echo _T("Tout les adhérents"); ?></OPTION>
+								<OPTION value="0"<? isSelected("0",$_SESSION["filtre_adh"]) ?>><? echo _T("Tous les adhérents"); ?></OPTION>
 								<OPTION value="3"<? isSelected("3",$_SESSION["filtre_adh"]) ?>><? echo _T("Les adhérents à jour"); ?></OPTION>
 								<OPTION value="1"<? isSelected("1",$_SESSION["filtre_adh"]) ?>><? echo _T("Les échéances proches"); ?></OPTION>
 								<OPTION value="2"<? isSelected("2",$_SESSION["filtre_adh"]) ?>><? echo _T("Les retardataires"); ?></OPTION>

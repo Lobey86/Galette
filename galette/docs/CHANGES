@@ -1,6 +1,12 @@
 Changes
 -------
 
+0.62 -> 0.62a
+- correct bug #590 : date before 1970 [Frédéric Jacquot]
+- Typos fixed [Roland Telle]
+- replace logo by new one [Frédéric Jacquot]
+- add an empty config.inc.php [Loïs Taulelle]
+
 0.61 -> 0.62
 
 - More documentation

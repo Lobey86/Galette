@@ -354,7 +354,7 @@
 						  <tr>
 								<TH id="libelle" <? echo $montant_cotis_req ?>><? echo _T("Montant :"); ?></TH> 
 								<td><input type="text" name="montant_cotis" value="<? echo $montant_cotis; ?>" maxlength="<? echo $montant_cotis_len; ?>"></td> 
-								<TH id="libelle" <? echo $duree_mois_cotis_req ?>><? echo _T("Prologation adhésion :"); ?></TH> 
+								<TH id="libelle" <? echo $duree_mois_cotis_req ?>><? echo _T("Prolongation adhésion :"); ?></TH> 
 								<td><input type="text" name="duree_mois_cotis" value="<? echo $duree_mois_cotis; ?>" maxlength="<? echo $duree_mois_cotis_len; ?>"> <? echo _T("mois"); ?></td>
 							</tr>
 							<tr> 

@@ -62,7 +62,7 @@
 			$mail_subject = _T("Vos identifiants Galette");
 			$mail_text =  _T("Bonjour,")."\n";
 			$mail_text .= "\n";
-			$mail_text .= _T("Quelqu'un (sûrement vous) à demandé à ce que l'on vous renvoie votre mot de passe.")."\n";
+			$mail_text .= _T("Quelqu'un (sûrement vous) a demandé que l'on vous renvoie votre mot de passe.")."\n";
 			$mail_text .= "\n";
 			$mail_text .= _T("Veuillez vous identifier à cette adresse :")."\n";
 			$mail_text .= "http://".$_SERVER["SERVER_NAME"].dirname($_SERVER["REQUEST_URI"])."\n";
@@ -70,7 +70,7 @@
 			$mail_text .= _T("Identifiant :")." ".custom_html_entity_decode($login_adh, ENT_QUOTES)."\n";
 			$mail_text .= _T("Mot de passe :")." ".custom_html_entity_decode($mdp_adh, ENT_QUOTES)."\n";
 			$mail_text .= "\n";
-			$mail_text .= _T("A trés bientôt !")."\n";
+			$mail_text .= _T("A très bientôt !")."\n";
 			$mail_text .= "\n";
 			$mail_text .= _T("(ce mail est un envoi automatique)")."\n";
 			$mail_headers = "From: ".PREF_EMAIL_NOM." <".PREF_EMAIL.">\n";

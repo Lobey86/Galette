@@ -277,7 +277,7 @@
 						$mail_text .= _T("Identifiant :")." ".custom_html_entity_decode($login_adh)."\n";
 						$mail_text .= _T("Mot de passe :")." ".custom_html_entity_decode($mdp_adh)."\n";
 						$mail_text .= "\n";
-						$mail_text .= _T("A trés bientôt !")."\n";
+						$mail_text .= _T("A très bientôt !")."\n";
 						$mail_text .= "\n";
 						$mail_text .= _T("(ce mail est un envoi automatique)")."\n";
 						$mail_headers = "From: ".PREF_EMAIL_NOM." <".PREF_EMAIL.">\n";

@@ -380,4 +380,15 @@ $lang["Retour à l'identification"]="Retour à l'identification";
 
 $lang["Je souhaite apparaître dans la liste des membres :"]="Apparaître dans la<br /> liste des membres :";
 $lang["Voulez-vous vraiment supprimer cet adhérent de la base, ceci supprimera aussi l'historique de ses cotisations. Pour éviter cela vous pouvez simplement désactiver le compte.\n\nVoulez-vous tout de même supprimer cet adhérent ?"]="Voulez-vous vraiment supprimer cet adhérent de la base, ceci supprimera aussi l'historique de ses cotisations. Pour éviter cela vous pouvez simplement désactiver le compte.\n\nVoulez-vous tout de même supprimer cet adhérent ?";
+$lang["Licence :"]="License :";
+$lang["Groupe :"]="Groupe :";
+$lang["FFRS Compétion Course"]="FFRS Compétion Course";
+$lang["FFRS Loisir Randonnée"]="FFRS Loisir Randonnée";
+$lang["UFOLEP"]="UFOLEP";
+$lang["Débutants"]="Débutants";
+$lang["Perfectionnement"]="Perfectionnement";
+$lang["Randonnée"]="Randonnée";
+$lang["Initiation Vitesse"]="Initiation Vitesse";
+$lang["Compétition"]="Compétition";
+$lang["N° :"]="N° :";
 ?>

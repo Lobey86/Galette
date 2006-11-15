@@ -25,11 +25,21 @@
 	include(WEB_ROOT."includes/functions.inc.php"); 
 	include(WEB_ROOT."includes/lang.inc.php"); 
 	include(WEB_ROOT."includes/session.inc.php"); 
-	
+
+    /* Finalement, tout admin (site, full, ou admin de groupe a le droit de mailer à tout le monde ! */
+    $apply_admin_policy = 0;
+
+
 	if ($_SESSION["logged_status"]==0) 
 		header("location: index.php");
+
 	if ($_SESSION["admin_status"]==0) 
 		header("location: voir_adherent.php");
+	elseif (($apply_admin_policy)&&($_SESSION["admin_status"]<FULL_ADMIN))
+		$_SESSION["filtre_adh_3"] = $_SESSION["admin_status"];
+
+	// Taille max des fichiers (octets)
+	$MFS=2*1024*1024;
 		
 	$mailing_adh = array();
 	$nomail_adh = array();
@@ -45,14 +55,126 @@
 	if (isset($_POST["mailing_objet"]))
 		$mailing_objet = stripslashes($_POST["mailing_objet"]);
 
+	$mailing_replyto = "";
+	if ($_SESSION["admin_status"]<SITE_ADMIN)
+	{
+		$requete[0] = "SELECT prenom_adh, nom_adh, email_adh, email_pro_adh
+						FROM ".PREFIX_DB."adherents
+						WHERE id_adh=" . $_SESSION["logged_id_adh"];
+			$resultat = &$DB->Execute($requete[0]);
+			if (!$resultat->EOF)
+			{
+				$mailing_replyto = $resultat->fields[0]." ".$resultat->fields[1];
+				if ($resultat->fields[2] != "")
+					$mailing_replyto .= " <".$resultat->fields[2].">";
+				elseif ($resultat->fields[3] != "")
+					$mailing_replyto .= " <".$resultat->fields[3].">";
+				else
+					$mailing_replyto = "";
+			}
+	}
+
+	if (isset($_POST["mailing_replyto"]))
+		$mailing_replyto = stripslashes($_POST["mailing_replyto"]);
+
+	// Is the OS Windows or Mac or Linux: set EOL accordingly
+	if (strtoupper(substr(PHP_OS,0,3)=='WIN')) {
+		$eol="\r\n";
+	} elseif (strtoupper(substr(PHP_OS,0,3)=='MAC')) {
+		$eol="\r";
+	} else {
+		$eol="\n";
+	}
+	
+	$mailing_headers = "From: ".PREF_EMAIL_NOM." <".PREF_EMAIL.">".$eol;
+	if ($mailing_replyto != "")
+		$mailing_headers .= "Reply-To: ".$mailing_replyto.$eol;
+	// These two to help avoid spam-filters
+	$mailing_headers .= "Message-ID: <".$now."LaGalette@".$_SERVER['SERVER_NAME'].">".$eol;
+	$mailing_headers .= "X-Mailer: PHP v".phpversion().$eol;          
+
 	$error_detected = "";
 	
 	$etape = 0;
-	
-	if (isset($_POST["mailing_go"]))
+
+	if (isset($_POST["attach_go"]))
+	{
+		if(isset($_FILES['mailing_userfile']))
+		{
+			if ($_FILES['mailing_userfile']['error'])
+			{
+				switch ($_FILES['mailing_userfile']['error']){
+					case 1: // UPLOAD_ERR_INI_SIZE
+					$error_detected .= "<LI>"._T("Le fichier dépasse la limite autorisée par le serveur (fichier php.ini) !")."</LI>";
+					$mosize=$MFS/1024/1024;
+					$error_detected .= "<LI>"._T("Le fichier attaché dépasse la taille permise de ".$mosize." Mo max.")."</LI>";
+                   break;
+                   case 2: // UPLOAD_ERR_FORM_SIZE
+                   $error_detected .= "<LI>"._T("Le fichier dépasse la limite autorisée dans le formulaire HTML !")."</LI>";
+                   break;
+                   case 3: // UPLOAD_ERR_PARTIAL
+                   $error_detected .= "<LI>"._T("L'envoi du fichier a été interrompu pendant le transfert !")."</LI>";
+                   break;
+                   case 4: // UPLOAD_ERR_NO_FILE
+                   $error_detected .= "<LI>"._T("Le fichier que vous avez envoyé a une taille nulle !")."</LI>";
+				   $error_detected .= "<LI>"._T("Il n'y a pas de fichier attaché.")."</LI>";
+                   break;
+				}
+				unset($_FILES['mailing_userfile']);
+			}
+			else
+			{
+				// Everything ok: proceed and backup userfile information 
+				// reminder: file is stored here: $_FILES['mailing_userfile']['tmp_name']
+				$_SESSION['mailing_userfile']=$_FILES['mailing_userfile'];
+				
+				// Read file
+				$handle=fopen($_FILES['mailing_userfile']['tmp_name'], 'rb');
+				$f_contents=fread($handle, filesize($_FILES['mailing_userfile']['tmp_name']));
+				//Encode The Data For Transition using base64_encode();
+				$f_contents=chunk_split(base64_encode($f_contents));
+				fclose($handle);
+
+				// Boundry for marking the split & Multitype Headers
+				$_SESSION['mime_boundary'] = md5(time());
+				$_SESSION['attachment_headers']  = 'MIME-Version: 1.0'.$eol;
+				$_SESSION['attachment_headers'] .= "Content-Type: multipart/mixed;".$eol." boundary=\"".$_SESSION['mime_boundary']."\"".$eol.$eol;
+                                $_SESSION['attachment_headers'] .= "This is a multi-part message in MIME format.".$eol;
+
+				// Attachment
+				$_SESSION['attachment_body']  = "--".$_SESSION['mime_boundary'].$eol;
+				if (isset($_FILES['mailing_userfile']['type']))
+					$_SESSION['attachment_body'] .= "Content-Type: ".$_FILES['mailing_userfile']['type'];
+				else
+					$_SESSION['attachment_body'] .= "Content-Type: application/octet-stream";
+				$_SESSION['attachment_body'] .= "; name=\"".$_FILES['mailing_userfile']['name']."\"".$eol;
+				$_SESSION['attachment_body'] .= "Content-Transfer-Encoding: base64".$eol;
+				// !! This line needs TWO end of lines !! IMPORTANT !!
+				$_SESSION['attachment_body'] .= "Content-Disposition: inline; filename=\"".$_FILES['mailing_userfile']['name']."\"".$eol.$eol;
+				$_SESSION['attachment_body'] .= $f_contents.$eol.$eol;
+				$_SESSION['attachment_body'] .= "--".$_SESSION['mime_boundary'].$eol;
+				// Text version
+				$_SESSION['attachment_body'] .= "Content-Type: text/plain; charset=iso-8859-1".$eol;
+				$_SESSION['attachment_body'] .= "Content-Transfer-Encoding: 8bit".$eol;
+			}
+		}
+	}
+	else if (isset($_POST["dettach_go"]))
+	{
+        	if (file_exists($rep.$_SESSION['mailing_userfile']['tmp_name']))
+			unlink($rep.$_SESSION['mailing_userfile']['tmp_name']);
+		unset($_SESSION['mailing_userfile']);
+		unset($_SESSION['attachment_body']);
+		unset($_SESSION['attachment_headers']);
+		unset($_SESSION['mime_boundary']);
+	}
+	else if (isset($_POST["mailing_go"]))
 	{
 		if ($mailing_objet=="")
 			$error_detected .= "<LI>"._T("Veuillez indiquer un objet pour le message.")."</LI>";
+
+		if ($mailing_replyto=="")
+			$error_detected .= "<LI>"._T("Veuillez remplir le champ \"Répondre A\" pour le message.")."</LI>";
 
 		if ($mailing_corps=="")
 			$error_detected .= "<LI>"._T("Veuillez saisir un message.")."</LI>";
@@ -69,6 +191,10 @@
 	if ($etape==0)
 	{
 		
+		if (isset($_GET["filtre_3"]))
+			if (is_numeric($_GET["filtre_3"]))
+				$_SESSION["filtre_adh_3"]=$_GET["filtre_3"];
+	
 		if (isset($_GET["filtre_2"]))
 			if (is_numeric($_GET["filtre_2"]))
 				$_SESSION["filtre_adh_2"]=$_GET["filtre_2"];
@@ -119,10 +245,11 @@
 
 		// selection des adherents et application filtre / tri
 			
-		$requete[0] = "SELECT id_adh, nom_adh, prenom_adh, pseudo_adh, activite_adh,
-			       libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance
-			       FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts
-			       WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut ";
+		$requete[0] = "SELECT id_adh, nom_adh, prenom_adh, libelle_groupe, activite_adh,
+			       libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance, email_pro_adh
+			       FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts, ".PREFIX_DB."groupes
+			       WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut
+			       AND ".PREFIX_DB."adherents.id_groupe=".PREFIX_DB."groupes.id_groupe ";
 		$requete[1] = "SELECT count(id_adh)
 			       FROM ".PREFIX_DB."adherents
 			       WHERE 1=1 ";
@@ -162,6 +289,20 @@
 				        AND date_echeance < ".$DB->OffsetDate(30)." ";
 		}
 		
+		// filtre d'affichage par groupe
+		if ($_SESSION["filtre_adh_3"] > 0)
+		{
+			$requete[0] .= "AND (".PREFIX_DB."adherents.id_groupe=".$_SESSION["filtre_adh_3"]." ";
+			$requete[0] .= "OR ".PREFIX_DB."adherents.referent=".$_SESSION["filtre_adh_3"].") ";
+			$requete[1] .= "AND (".PREFIX_DB."adherents.id_groupe=".$_SESSION["filtre_adh_3"]." ";
+			$requete[1] .= "OR ".PREFIX_DB."adherents.referent=".$_SESSION["filtre_adh_3"].") ";
+		}
+                else if ($_SESSION["filtre_adh_3"] == -1) // affichage des référents (pseudo groupe virtuel :-)
+                {
+			$requete[0] .= "AND ".PREFIX_DB."adherents.referent>'0'";
+			$requete[1] .= "AND ".PREFIX_DB."adherents.referent>'0'";
+                }
+
 		// phase de tri	
 		
 		if ($_SESSION["tri_adh_sens"]=="0")
@@ -171,9 +312,9 @@
 	
 		$requete[0] .= "ORDER BY ";
 		
-		// tri par pseudo
+		// tri par groupe 
 		if ($_SESSION["tri_adh"]=="1")
-			$requete[0] .= "pseudo_adh ".$tri_adh_sens_txt.",";
+			$requete[0] .= "libelle_groupe ".$tri_adh_sens_txt.",";
 			
 		// tri par statut
 		elseif ($_SESSION["tri_adh"]=="2")
@@ -224,6 +365,30 @@
 								<OPTION value="1"<? isSelected("1",$_SESSION["filtre_adh_2"]) ?>><? echo _T("Comptes actifs"); ?></OPTION>
 								<OPTION value="2"<? isSelected("2",$_SESSION["filtre_adh_2"]) ?>><? echo _T("Comptes désactivés"); ?></OPTION>
 							</SELECT>
+							<SELECT name="filtre_3" onChange="form.submit()">
+								<? if ( (!$apply_admin_policy) ||
+								        (($apply_admin_policy)&&($_SESSION["admin_status"]>=FULL_ADMIN))
+									  )
+								{
+								?>
+								<OPTION value="-1"<? isSelected("-1",$_SESSION["filtre_adh_3"]) ?>><? echo _T("Référents"); ?></OPTION>
+								<OPTION value="0"<? isSelected("0",$_SESSION["filtre_adh_3"]) ?>><? echo _T("Tous les groupes"); ?></OPTION>
+								<?
+								}
+									$requete = "SELECT * FROM ".PREFIX_DB."groupes";
+									if (($apply_admin_policy)&&($_SESSION["admin_status"]<FULL_ADMIN))
+										$requete .= " WHERE ".PREFIX_DB."groupes.id_groupe=".$_SESSION["admin_status"];
+									$result = &$DB->Execute($requete);
+									while (!$result->EOF)
+									{									
+								?>
+									<OPTION value="<? echo $result->fields["id_groupe"] ?>"<? isSelected($result->fields["id_groupe"],$_SESSION["filtre_adh_3"]) ?>><? echo _T($result->fields["libelle_groupe"]); ?></OPTION>
+								<?
+										$result->MoveNext();
+									}
+									$result->Close();
+								?>
+							</SELECT>
 							<INPUT type="submit" value="<? echo _T("Filtrer"); ?>">
 						</FORM>
 					</DIV>
@@ -240,7 +405,7 @@
 		else
 		{
 ?>
-						<FORM action="mailing_adherents.php" method="post" name="mailing_form">
+						<FORM action="mailing_adherents.php" method="post" enctype="multipart/form-data" name="mailing_form">
 <?
 		}
 ?>
@@ -258,9 +423,19 @@
 									?>
 								</TH> 
 								<TH class="listing left"> 
-									<A href="mailing_adherents.php?tri=1" class="listing"><? echo _T("E-Mail"); ?></A>
+									<A href="mailing_adherents.php?tri=1" class="listing"><? echo _T("E-Mail Perso"); ?></A>
 									<?
 										if ($_SESSION["tri_adh"]=="1")
+											if ($_SESSION["tri_adh_sens"]=="0")
+												echo "<IMG src=\"images/asc.png\" width=\"7\" height=\"7\" alt=\"\">";
+											else 
+												echo "<IMG src=\"images/desc.png\" width=\"7\" height=\"7\" alt=\"\">";
+									?>
+								</TH> 
+								<TH class="listing left"> 
+									<A href="mailing_adherents.php?tri=4" class="listing"><? echo _T("E-Mail Pro"); ?></A>
+									<?
+										if ($_SESSION["tri_adh"]=="4")
 											if ($_SESSION["tri_adh_sens"]=="0")
 												echo "<IMG src=\"images/asc.png\" width=\"7\" height=\"7\" alt=\"\">";
 											else 
@@ -363,21 +538,28 @@
 <?
 			}
 ?>
-<?
-			if ($resultat->fields[9]=="1") {
+<?			if ($resultat->fields[9] >= FULL_ADMIN) {
 ?>
-									<IMG src="images/icon-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
+				<img src="images/icon-red-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
 <?
-			}	else {
+			} elseif ($resultat->fields[9] > 0) {
 ?>
-									<IMG src="images/icon-empty.png" Alt="" align="middle" width="12" height="13">
+				<img src="images/icon-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
+<?
+			} else {
+?>
+				<img src="images/icon-empty.png" Alt="" align="middle" width="12" height="13">
 <?
 			}
 ?>
+
 									<A href="voir_adherent.php?id_adh=<? echo $resultat->fields["id_adh"] ?>"><? echo htmlentities(strtoupper($resultat->fields[1]), ENT_QUOTES)." ".htmlentities($resultat->fields[2], ENT_QUOTES); ?></A>
 								</TD> 
 								<TD class="<? echo $row_class; ?>" nowrap> 
 									<? if ($resultat->fields[8]!="") echo "<A href=\"mailto:".htmlentities($resultat->fields[8], ENT_QUOTES)."\">".htmlentities($resultat->fields[8], ENT_QUOTES)."</A>"; ?>&nbsp; 
+								</TD> 
+								<TD class="<? echo $row_class; ?>" nowrap> 
+									<? if ($resultat->fields[11]!="") echo "<A href=\"mailto:".htmlentities($resultat->fields[11], ENT_QUOTES)."\">".htmlentities($resultat->fields[11], ENT_QUOTES)."</A>"; ?>&nbsp; 
 								</TD> 
 								<TD class="<? echo $row_class; ?>" nowrap><? echo _T($resultat->fields[5]) ?></TD> 
 								<TD class="<? echo $row_class; ?>" nowrap><? echo $statut_cotis ?></TD>
@@ -409,11 +591,44 @@
 						<DIV align="center">
 						<TABLE border="0" id="input-table">
 							<TR>
+								<TH id="libelle"><? echo _T("De :"); ?></TH>
+							</TR>
+							<TR>
+								<TD><INPUT type="text" name="mailing_from" readonly value="<? echo htmlentities(PREF_EMAIL_NOM." <".PREF_EMAIL.">", ENT_QUOTES); ?>" size="80"></TD>
+							</TR>
+							<TR>
+								<TH id="libelle"><? echo _T("Répondre A :"); ?></TH>
+							</TR>
+							<TR>
+								<TD><INPUT type="text" name="mailing_replyto" value="<? echo htmlentities($mailing_replyto, ENT_QUOTES); ?>" size="80"></TD>
+							</TR>
+							<TR>
 								<TH id="libelle"><? echo _T("Objet :"); ?></TH>
 							</TR>
 							<TR>
 								<TD><INPUT type="text" name="mailing_objet" value="<? echo htmlentities($mailing_objet, ENT_QUOTES); ?>" size="80"></TD>
 							</TR>
+
+							<TR>
+								<TH id="libelle"><? echo _T("Fichier Attaché :"); ?></TH>
+							</TR>
+							<TR>
+								<TD>
+										<? if (isset($_SESSION['mailing_userfile'])) {
+											echo $_SESSION['mailing_userfile']['name']." (";
+											if (isset($_SESSION['mailing_userfile']['type']))
+												echo "type: ".$_SESSION['mailing_userfile']['type'].", ";
+											echo "taille: ".$_SESSION['mailing_userfile']['size']." octets)";
+										?>	<INPUT TYPE=SUBMIT name="dettach_go" value="Supprimer">
+										<? } else { ?>
+										<INPUT TYPE=HIDDEN NAME=MAX_FILE_SIZE VALUE=<? echo $MFS;?>>
+										<INPUT TYPE=FILE NAME="mailing_userfile" size="80">
+										<INPUT TYPE=SUBMIT name="attach_go" value="Attacher">
+										<? } ?>
+								</TD>
+
+							</TR>
+
 							<TR>
 								<TH id="libelle"><? echo _T("Message :"); ?></TH>
 							</TR>
@@ -442,7 +657,7 @@
 		// $mailing_corps = $_POST["mailing_corps"];
 		// adhérents avec email
 		$requete = "SELECT id_adh, nom_adh, prenom_adh, pseudo_adh, activite_adh,
-				libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance
+				libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance, email_pro_adh
 				FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts
 	  				WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut AND (";
 		$where_clause = "";
@@ -452,7 +667,7 @@
 				$where_clause .= " OR ";
 			$where_clause .= "id_adh='".$value."'";
 		}
-		$requete .= $where_clause.") AND email_adh IS NOT NULL ORDER by nom_adh, prenom_adh;";
+		$requete .= $where_clause.") AND (email_adh IS NOT NULL OR email_pro_adh IS NOT NULL) ORDER by nom_adh, prenom_adh;";
 		// echo $requete;
 		$resultat = &$DB->Execute($requete);
 		if (isset($_POST["mailing_confirmed"]))
@@ -470,12 +685,21 @@
 				<TR> 
 	  				<TH class="listing left" width="250"><? echo _T("Nom"); ?></TH> 
 					<TH class="listing left"><? echo _T("E-Mail"); ?></TH> 
+					<TH class="listing left"><? echo _T("E-Mail Pro"); ?></TH> 
 					<TH class="listing left"> <? echo _T("Statut"); ?></TH> 
 					<TH class="listing left"><? echo _T("Etat cotisations"); ?></TH> 
 				</TR> 			
 <?		
 		$num_mails = 0;
 		$concatmail = "";
+		if (isset($_SESSION['attachment_body']))
+			$full_mailing_corps = $_SESSION['attachment_body'].$mailing_corps.$eol.$eol."--".$_SESSION['mime_boundary']."--".$eol.$eol;
+		else
+			$full_mailing_corps = $mailing_corps;
+
+		if (isset($_SESSION['attachment_headers']))
+			$mailing_headers .= $_SESSION['attachment_headers'];
+		
 		if ($resultat->EOF)
 		{
 ?>	
@@ -488,9 +712,18 @@
 		{
 			if (isset($_POST["mailing_confirmed"]))
 			{
-				mail ($resultat->fields[8], $mailing_objet, $mailing_corps,"From: ".PREF_EMAIL_NOM." <".PREF_EMAIL.">\n");
-				$concatmail = $concatmail . " " . $resultat->fields[8];
-				$num_mails++;
+				if ($resultat->fields[8]!="")
+				{
+					mail ($resultat->fields[8], $mailing_objet, $full_mailing_corps, $mailing_headers);
+					$num_mails++;
+					$concatmail = $concatmail . " " . $resultat->fields[8];
+				}
+				if ($resultat->fields[11]!="")
+				{
+					mail ($resultat->fields[11], $mailing_objet, $full_mailing_corps, $mailing_headers);
+					$concatmail = $concatmail . " " . $resultat->fields[11];
+					$num_mails++;
+				}
 			}		
 
 			// définition CSS pour adherent désactivé
@@ -555,11 +788,15 @@
 			}
 ?>
 <?
-			if ($resultat->fields[9]=="1") {
+			if ($resultat->fields[9] >= FULL_ADMIN) {
+?>
+						<img src="images/icon-red-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
+<?
+			} elseif ($resultat->fields[9] > 0) {
 ?>
 						<img src="images/icon-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
 <?
-			}	else {
+			} else {
 ?>
 						<img src="images/icon-empty.png" Alt="" align="middle" width="12" height="13">
 <?
@@ -569,6 +806,9 @@
 					</td> 
 					<td bgcolor="<? echo $color ?>"<? echo $activity_class ?>> 
 						<? if ($resultat->fields[8]!="") echo "<A href=\"mailto:".htmlentities($resultat->fields[8], ENT_QUOTES)."\">".htmlentities($resultat->fields[8], ENT_QUOTES)."</A>"; ?>&nbsp; 
+					</td> 
+					<td bgcolor="<? echo $color ?>"<? echo $activity_class ?>> 
+						<? if ($resultat->fields[11]!="") echo "<A href=\"mailto:".htmlentities($resultat->fields[11], ENT_QUOTES)."\">".htmlentities($resultat->fields[11], ENT_QUOTES)."</A>"; ?>&nbsp; 
 					</td> 
 					<td bgcolor="<? echo $color ?>"<? echo $activity_class ?>>
 						<? echo _T($resultat->fields[5]) ?> 
@@ -583,15 +823,38 @@
 		}
 		
 		if (isset($_POST["mailing_confirmed"]))
-			dblog(_T("Envoi d'un mailing intitulé :")." \"".$mailing_objet."\" - ".$num_mails." "._T("destinataires"), $concatmail."\n".$mailing_corps);
-		
+		{
+			dblog(_T("Envoi d'un mailing intitulé :")." \"".$mailing_objet."\" - Reply-To: ".$mailing_replyto." - ".$num_mails." "._T("destinataires"), $concatmail."\n".$mailing_corps);
+        		if (file_exists($rep.$_SESSION['mailing_userfile']['tmp_name']))
+				unlink($rep.$_SESSION['mailing_userfile']['tmp_name']);
+			unset($_SESSION['mailing_userfile']);
+			unset($_SESSION['attachment_body']);
+			unset($_SESSION['attachment_headers']);
+			unset($_SESSION['mime_boundary']);
+		}
+
 		$resultat->Close();
 ?>
 			</TABLE>
 			<DIV id="mailing_preview" align="center">
 				<TABLE border="0">
+				<TR><TH><? echo _T("De :"); ?></TH></TR>
+				<TR><TD><? echo htmlentities($PREF_EMAIL_NOM." <".PREF_EMAIL.">", ENT_QUOTES); ?></TD></TR>
+				<TR><TH><? echo _T("Répondre A :"); ?></TH></TR>
+				<TR><TD><? echo htmlentities($mailing_replyto, ENT_QUOTES); ?></TD></TR>
 				<TR><TH><? echo _T("Objet :"); ?></TH></TR>
 				<TR><TD><? echo htmlentities($mailing_objet, ENT_QUOTES); ?></TD></TR>
+				<? if (isset($_SESSION['mailing_userfile'])) { ?>
+				<TR><TH><? echo _T("Fichier Attaché :"); ?></TH></TR>
+				<TR><TD>
+					<?
+					echo $_SESSION['mailing_userfile']['name']." (";
+					if (isset($_SESSION['mailing_userfile']['type']))
+						echo "type: ".$_SESSION['mailing_userfile']['type'].", ";
+					echo "taille: ".$_SESSION['mailing_userfile']['size']." octets)";
+					?>
+				</TD></TR>
+				<? } ?>
 				<TR><TH><? echo _T("Message :"); ?></TH></TR>
 				<TR><TD><? echo nl2br(htmlentities($mailing_corps, ENT_QUOTES)); ?></TD></TR>
 				</TABLE>
@@ -612,6 +875,8 @@
 				echo "<INPUT type=\"hidden\" name=\"mailing_adh[]\" value=\"".$value."\">";
 			}
 ?>
+										<INPUT type ="hidden" name="mailing_from" value="<? echo htmlentities($PREF_EMAIL_NOM." <".PREF_EMAIL.">", ENT_QUOTES); ?>">
+										<INPUT type ="hidden" name="mailing_replyto" value="<? echo htmlentities($mailing_replyto, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_corps" value="<? echo htmlentities($mailing_corps, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_objet" value="<? echo htmlentities($mailing_objet, ENT_QUOTES); ?>">
 										<INPUT type="submit" value="<? echo _T("Retour"); ?>">&nbsp;&nbsp;&nbsp;
@@ -626,6 +891,8 @@
 				echo "<INPUT type=\"hidden\" name=\"mailing_adh[]\" value=\"".$value."\">";
 			}
 ?>
+										<INPUT type ="hidden" name="mailing_from" value="<? echo htmlentities($PREF_EMAIL_NOM." <".PREF_EMAIL.">", ENT_QUOTES); ?>">
+										<INPUT type ="hidden" name="mailing_replyto" value="<? echo htmlentities($mailing_replyto, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_corps" value="<? echo htmlentities($mailing_corps, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_objet" value="<? echo htmlentities($mailing_objet, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_confirmed" value="1">
@@ -665,7 +932,7 @@
 				ville_adh, tel_adh, gsm_adh, msn_adh, icq_adh, pays_adh, jabber_adh, adresse2_adh
 				FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts
 			       	WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut AND (";
-		$requete .= $where_clause.") AND email_adh IS NULL ORDER by nom_adh, prenom_adh;";
+		$requete .= $where_clause.") AND (email_adh IS NULL AND email_pro_adh IS NULL) ORDER by nom_adh, prenom_adh;";
 		// echo $requete;
 		$resultat = &$DB->Execute($requete);
 
@@ -741,11 +1008,15 @@
 				}
 ?>
 <?
-				if ($resultat->fields[9]=="1") {
+				if ($resultat->fields[9] >= FULL_ADMIN) {
+?>
+									<img src="images/icon-red-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
+<?
+				} elseif ($resultat->fields[9] > 0) {
 ?>
 									<img src="images/icon-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
 <?
-				}	else {
+				} else {
 ?>
 									<img src="images/icon-empty.png" Alt="" align="middle" width="12" height="13">
 <?
@@ -827,6 +1098,8 @@
 				echo "<INPUT type=\"hidden\" name=\"mailing_adh[]\" value=\"".$value."\">";
 			}
 ?>
+										<INPUT type ="hidden" name="mailing_from" value="<? echo htmlentities($PREF_EMAIL_NOM." <".PREF_EMAIL.">", ENT_QUOTES); ?>">
+										<INPUT type ="hidden" name="mailing_replyto" value="<? echo htmlentities($mailing_replyto, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_corps" value="<? echo htmlentities($mailing_corps, ENT_QUOTES); ?>">
 										<INPUT type ="hidden" name="mailing_objet" value="<? echo htmlentities($mailing_objet, ENT_QUOTES); ?>">
 										<INPUT type="submit" value="<? echo _T("Retour"); ?>">&nbsp;&nbsp;&nbsp;
@@ -864,3 +1137,4 @@
 	}
 	include("footer.php"); 
 ?>
+

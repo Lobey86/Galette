@@ -30,6 +30,9 @@
 		header("location: index.php");
 	if ($_SESSION["admin_status"]==0) 
 		header("location: voir_adherent.php");
+	elseif($_SESSION["admin_status"]<FULL_ADMIN)
+		$_SESSION["filtre_adh_3"] = $_SESSION["admin_status"];
+
 		
 	$page = 1;
 	if (isset($_GET["page"]))
@@ -42,6 +45,10 @@
 	if (isset($_GET["filtre_2"]))
 		if (is_numeric($_GET["filtre_2"]))
 			$_SESSION["filtre_adh_2"]=$_GET["filtre_2"];
+	
+	if (isset($_GET["filtre_3"]))
+		if (is_numeric($_GET["filtre_3"]))
+			$_SESSION["filtre_adh_3"]=$_GET["filtre_3"];
 	
 	// Tri
 	
@@ -96,10 +103,11 @@
 <?
 	// selection des adherents et application filtre / tri
 		
-	$requete[0] = "SELECT id_adh, nom_adh, prenom_adh, pseudo_adh, activite_adh,
-		       libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance
-		       FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts
-		       WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut ";
+	$requete[0] = "SELECT id_adh, nom_adh, prenom_adh, libelle_groupe, activite_adh, 
+		       libelle_statut, bool_exempt_adh, titre_adh, email_adh, bool_admin_adh, date_echeance, email_pro_adh
+		       FROM ".PREFIX_DB."adherents, ".PREFIX_DB."statuts,  ".PREFIX_DB."groupes
+		       WHERE ".PREFIX_DB."adherents.id_statut=".PREFIX_DB."statuts.id_statut
+		       AND ".PREFIX_DB."adherents.id_groupe=".PREFIX_DB."groupes.id_groupe ";
 	$requete[1] = "SELECT count(id_adh)
 		       FROM ".PREFIX_DB."adherents 
 		       WHERE 1=1 ";
@@ -139,6 +147,13 @@
 			        AND date_echeance < ".$DB->OffsetDate(30)." ";
 	}
 	
+	// filtre d'affichage par groupe
+	if ($_SESSION["filtre_adh_3"] > 0)
+	{
+		$requete[0] .= "AND ".PREFIX_DB."adherents.id_groupe=".$_SESSION["filtre_adh_3"]." ";
+		$requete[1] .= "AND ".PREFIX_DB."adherents.id_groupe=".$_SESSION["filtre_adh_3"]." ";
+	}
+	
 	// phase de tri	
 	
 	if ($_SESSION["tri_adh_sens"]=="0")
@@ -148,9 +163,9 @@
 
 	$requete[0] .= "ORDER BY ";
 	
-	// tri par pseudo
+	// tri par groupe
 	if ($_SESSION["tri_adh"]=="1")
-		$requete[0] .= "pseudo_adh ".$tri_adh_sens_txt.",";
+		$requete[0] .= "libelle_groupe ".$tri_adh_sens_txt.",";
 		
 	// tri par statut
 	elseif ($_SESSION["tri_adh"]=="2")
@@ -195,6 +210,28 @@
 				<OPTION value="1"<? isSelected("1",$_SESSION["filtre_adh_2"]) ?>><? echo _T("Comptes actifs"); ?></OPTION>
 				<OPTION value="2"<? isSelected("2",$_SESSION["filtre_adh_2"]) ?>><? echo _T("Comptes désactivés"); ?></OPTION>
 			</SELECT>
+			<SELECT name="filtre_3" onChange="form.submit()">
+                <? if ($_SESSION["admin_status"]>=FULL_ADMIN)
+				{
+				?>
+					<OPTION value="0"<? isSelected("0",$_SESSION["filtre_adh_3"]) ?>><? echo _T("Tous les groupes"); ?></OPTION>
+				<?
+				}
+					$requete = "SELECT *
+		 				    FROM ".PREFIX_DB."groupes";
+					if ($_SESSION["admin_status"]<FULL_ADMIN)
+					$requete .= " WHERE ".PREFIX_DB."groupes.id_groupe=".$_SESSION["admin_status"];
+					$result = &$DB->Execute($requete);
+					while (!$result->EOF)
+					{									
+				?>
+					<OPTION value="<? echo $result->fields["id_groupe"] ?>"<? isSelected($result->fields["id_groupe"],$_SESSION["filtre_adh_3"]) ?>><? echo _T($result->fields["libelle_groupe"]); ?></OPTION>
+				<?
+						$result->MoveNext();
+					}
+					$result->Close();
+				?>
+			</SELECT>
 			<INPUT type="submit" value="<? echo _T("Filtrer"); ?>">
 		</FORM>
 	</DIV>
@@ -223,7 +260,7 @@
 				<IMG src="images/<? echo $img_sens; ?>" width="7" height="7" alt="">
 			</TH> 
 			<TH class="listing left" nowrap> 
-				<A href="gestion_adherents.php?tri=1" class="listing"><? echo _T("Pseudo"); ?></A>
+				<A href="gestion_adherents.php?tri=1" class="listing"><? echo _T("Groupe"); ?></A>
 <?
 	if ($_SESSION["tri_adh"]=="1")
 	{
@@ -346,16 +383,24 @@
 ?>
 				<A href="mailto:<? echo $resultat->fields[8] ?>"><IMG src="images/icon-mail.png" Alt="<? echo _T("[Mail]"); ?>" align="middle" border="0" width="14" height="10"></A>
 <?
+		} else if ($resultat->fields[11]!="") {
+?>
+				<A href="mailto:<? echo $resultat->fields[11] ?>"><IMG src="images/icon-mail.png" Alt="<? echo _T("[Mail]"); ?>" align="middle" border="0" width="14" height="10"></A>
+<?
 		} else {
 ?>
 				<IMG src="images/icon-empty.png" Alt="" align="middle" border="0" width="14" height="10">
 <?
 		}
-		if ($resultat->fields[9]=="1") {
+		if ($resultat->fields[9] >= FULL_ADMIN) {
+?>
+				<IMG src="images/icon-red-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
+<?
+		} elseif ($resultat->fields[9] > 0) {
 ?>
 				<IMG src="images/icon-star.png" Alt="<? echo _T("[admin]"); ?>" align="middle" width="12" height="13">
 <?
-		}	else {
+		} else {
 ?>
 				<IMG src="images/icon-empty.png" Alt="" align="middle" width="12" height="13">
 <?

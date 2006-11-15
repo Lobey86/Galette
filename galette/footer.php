@@ -22,7 +22,7 @@
 	$end = utime(); $run = $end - $start;
 ?>
 		<DIV id="copyright">
-			<A href="http://www.zopeuse.org/projets/galette/Wiki_galette/FrontPage">Galette <? echo GALETTE_VERSION ?></A> - <? echo _T("Réalisation :"); ?> <A href="mailto:deelight@logeek.com">Deelight</A> - <? echo _T("Graphisme :"); ?> <A href="http://www.gimp.org">Gimp</A> - <? echo _T("Editeur :"); ?> <A href="http://bluefish.openoffice.nl">Bluefish</A> - <? echo _T("Page affichée en")." ".substr($run, 0, 5)." "._T("secondes."); ?>
+			<A href="http://galette.tuxfamily.org/fr/doku.php">Galette <? echo GALETTE_VERSION ?></A> - <? echo _T("Réalisation :"); ?> <A href="mailto:deelight@logeek.com">Deelight</A> - Hack Sport : <A href="mailto:flattwin12@free.fr">Flattwin</A> - <? echo _T("Graphisme :"); ?> <A href="http://www.gimp.org">Gimp</A> - <? echo _T("Editeur :"); ?> <A href="http://bluefish.openoffice.nl">Bluefish</A> - <? echo _T("Page affichée en")." ".substr($run, 0, 5)." "._T("secondes."); ?>
 		</DIV>
 	</DIV>
 	<DIV id="menu">
@@ -33,8 +33,9 @@
 		<DIV id="nav1">
 			<H1><? echo _T("Navigation"); ?></H1>
 			<UL>
+				<LI><? echo $_SESSION["logged_nom_adh"]; ?></LI>
 <?
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	{
 ?>
 				<LI><A href="gestion_adherents.php"><? echo _T("Liste des adhérents"); ?></A></LI>
@@ -43,6 +44,15 @@
 				<LI><A href="ajouter_contribution.php"><? echo _T("Ajouter une contribution"); ?></A></LI>
 				<LI><A href="mailing_adherents.php"><? echo _T("Effectuer un mailing"); ?></A></LI>
 				<LI><A href="mailing_adherents.php?etiquettes=1"><? echo _T("Génération d'étiquettes"); ?></A></LI>
+<?
+	}
+	//Only real super admin is able to access logs and preferences, not users which have been granted a all users admin right
+	//if ($_SESSION["admin_status"]==SUPER_ADMIN) 
+	//if ($_SESSION["logged_username"]==PREF_ADMIN_LOGIN)  // Doesn't work !?
+	//if ($_SESSION["logged_nom_adh"]==_T("Administrateur"))
+	if ($_SESSION["admin_status"]==SITE_ADMIN)
+	{
+?>
 				<LI><A href="log.php"><? echo _T("Historique"); ?></A></LI>
 				<LI><A href="preferences.php"><? echo _T("Préférences"); ?></A></LI>
 <?

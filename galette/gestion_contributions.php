@@ -30,8 +30,12 @@
 	
 	if ($_SESSION["logged_status"]==0) 
 		header("location: index.php");
-	if ($_SESSION["admin_status"]==0) 
+
+	if ($_SESSION["admin_status"]==0)
+	{
 		$_SESSION["filtre_cotis_adh"] = $_SESSION["logged_id_adh"];
+		$_SESSION["filtre_cotis_adh_2"] = "";
+	}
 	else
 	{
 		if (isset($_GET["id_adh"]))
@@ -43,6 +47,11 @@
 		}
 		else
 			$_SESSION["filtre_cotis_adh"]="";
+
+		if ($_SESSION["admin_status"]<FULL_ADMIN) 
+			$_SESSION["filtre_cotis_adh_2"] = $_SESSION["admin_status"];
+		else
+			$_SESSION["filtre_cotis_adh_2"] = "";
 	}		
 
 
@@ -97,7 +106,7 @@
 
 	include("header.php");
 
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	if (isset($_GET["sup"]))
 	{
 		// recherche adherent
@@ -153,7 +162,11 @@
 		$requete[0] .= "AND ".PREFIX_DB."cotisations.id_adh='" . $_SESSION["filtre_cotis_adh"] . "' ";
 		$requete[1] .= "AND ".PREFIX_DB."cotisations.id_adh='" . $_SESSION["filtre_cotis_adh"] . "' ";
 	}
-		
+	if ($_SESSION["filtre_cotis_adh_2"]!="")
+	{
+		$requete[0] .= "AND ".PREFIX_DB."adherents.id_groupe='" . $_SESSION["filtre_cotis_adh_2"] . "' ";
+		$requete[1] .= "AND ".PREFIX_DB."adherents.id_groupe='" . $_SESSION["filtre_cotis_adh_2"] . "' ";
+	}
 	// date filter
 	if ($_SESSION["filtre_date_cotis_1"]!="")
 	{
@@ -246,7 +259,7 @@
 									?>
 								</TH> 
 <?
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	{
 ?>
 								<TH class="listing left"> 
@@ -293,7 +306,7 @@
 									?>
 								</TH> 
 <?
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	{
 ?>
 								<TH width="55" class="listing"> 
@@ -308,7 +321,7 @@
 	$activity_class = "";
 	if ($resultat->EOF)
 	{
-		if ($_SESSION["admin_status"]==1)
+		if ($_SESSION["admin_status"]!=0)
 			$colspan = 7;
 		else
 			$colspan = 5;
@@ -334,7 +347,7 @@
 									?> 
 								</TD> 
 <?
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	{
 ?>
 								<TD class="<? echo $row_class; ?>" nowrap> 
@@ -351,7 +364,7 @@
 								<TD class="<? echo $row_class; ?>" nowrap><? echo $resultat->fields["montant_cotis"] ?></TD> 
 								<TD class="<? echo $row_class; ?>" nowrap><? echo $resultat->fields["duree_mois_cotis"] ?></TD> 
 <?
-	if ($_SESSION["admin_status"]==1) 
+	if ($_SESSION["admin_status"]!=0) 
 	{
 ?>
 								<TD width="55" class="<? echo $row_class; ?> center" nowrap>  
@@ -440,7 +453,7 @@
 		    </TR>
 		  </TABLE>
 <?
-		if ($_SESSION["admin_status"]==1)
+		if ($_SESSION["admin_status"]!=0)
 	        {
 ?>
 	<BR>

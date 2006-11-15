@@ -1,5 +1,5 @@
 <?
-	define("GALETTE_VERSION", "v0.62");
+	define("GALETTE_VERSION", "v0.62a-sport");
 
 	/*
 	*@author steve gricci

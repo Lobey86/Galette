@@ -50,7 +50,7 @@
 			else
 			{
 				$_SESSION["tri_log"]=$_GET["tri"];
-				$_SESSION["tri_log_sens"]=0;
+				$_SESSION["tri_log_sens"]=1;
 			}
 		}
     

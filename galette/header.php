@@ -25,6 +25,18 @@
 	<TITLE>Galette <? echo GALETTE_VERSION ?></TITLE> 
 	<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1"> 
 	<LINK rel="stylesheet" type="text/css" href="galette.css" > 
+  <!-- calendar stylesheet -->
+  <link rel="stylesheet" type="text/css" media="all" href="jscalendar/calendar-blue-custom.css" title="blue-custom" />
+
+  <!-- main calendar program -->
+  <script type="text/javascript" src="jscalendar/calendar.js"></script>
+
+  <!-- language for the calendar -->
+  <script type="text/javascript" src="jscalendar/lang/calendar-fr.js"></script>
+
+  <!-- the following script defines the Calendar.setup helper function, which makes
+       adding a calendar a matter of 1 or 2 lines of code. -->
+  <script type="text/javascript" src="jscalendar/calendar-setup.js"></script>
 </HEAD> 
 <BODY BGCOLOR="#FFFFFF">
 	<DIV id="content">

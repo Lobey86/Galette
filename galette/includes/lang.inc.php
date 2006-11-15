@@ -4,7 +4,8 @@
 	{
 		// echo "$chaine";die();
 		if (!isset($GLOBALS["lang"][$chaine]))
-			return $chaine." (not translated)";
+//			return $chaine." (not translated)";
+			return $chaine;
 		elseif ($GLOBALS["lang"][$chaine]=="")
 			return $chaine." (not translated)";
 		else

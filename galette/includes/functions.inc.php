@@ -85,15 +85,26 @@
 	
 	function dblog($text, $query="")
 	{
+	global $DB;
+		/*echo PREF_LOG."\n";*/
 		if (PREF_LOG=="2")
 		{
-			$requete = "INSERT INTO ".PREFIX_DB."logs (date_log, ip_log, adh_log, text_log) VALUES (" . $GLOBALS["DB"]->DBTimeStamp(time()) . ", " . $GLOBALS["DB"]->qstr($_SERVER["REMOTE_ADDR"]) . ", " . $GLOBALS["DB"]->qstr($_SESSION["logged_nom_adh"]) . ", " . $GLOBALS["DB"]->qstr($text."\n".$query) . ");";
+/*
+                        $requete = "INSERT INTO ".PREFIX_DB."logs (date_log, ip_log, adh_log, text_log) VALUES (" . $GLOBALS["DB"]->DBTimeStamp(time()) . ", " . $GLOBALS["DB"]->qstr($_SERVER["REMOTE_ADDR"]) . ", " . $GLOBALS["DB"]->qstr($_SESSION["logged_nom_adh"]) . ", " . $GLOBALS["DB"]->qstr($text."\n".$query) . ");";
 			$GLOBALS["DB"]->Execute($requete);
+*/
+			$requete = "INSERT INTO ".PREFIX_DB."logs (date_log, ip_log, adh_log, text_log) VALUES (" . $DB->DBTimeStamp(time()) . ", " . $DB->qstr($_SERVER["REMOTE_ADDR"]) . ", " . $DB->qstr($_SESSION["logged_nom_adh"]) . ", " . $DB->qstr($text."\n".$query) . ");";
+                        $DB->Execute($requete);
+			/*echo $requete."\n";*/
 		}
 		elseif (PREF_LOG=="1")
 		{
+                        /*
 			$requete = "INSERT INTO ".PREFIX_DB."logs (date_log, ip_log, adh_log, text_log) VALUES (" . $GLOBALS["DB"]->DBTimeStamp(time()) . ", " . $GLOBALS["DB"]->qstr($_SERVER["REMOTE_ADDR"]) . ", " . $GLOBALS["DB"]->qstr($_SESSION["logged_nom_adh"]) . ", " . $GLOBALS["DB"]->qstr($text) . ");";
 			$GLOBALS["DB"]->Execute($requete);
+                        */
+			$requete = "INSERT INTO ".PREFIX_DB."logs (date_log, ip_log, adh_log, text_log) VALUES (" . $DB->DBTimeStamp(time()) . ", " . $DB->qstr($_SERVER["REMOTE_ADDR"]) . ", " . $DB->qstr($_SESSION["logged_nom_adh"]) . ", " . $DB->qstr($text) . ");";
+			$DB->Execute($requete);
 		}
 	}
 	

@@ -1,4 +1,4 @@
-<? 
+<?
  
 /* index.php
  * - Identification
@@ -25,13 +25,13 @@
 	include(WEB_ROOT."includes/functions.inc.php"); 
 	include(WEB_ROOT."includes/lang.inc.php"); 
 	include(WEB_ROOT."includes/session.inc.php"); 
-	 
+
 	if (isset($_POST["ident"])) 
 	{ 
 		if ($_POST["login"]==PREF_ADMIN_LOGIN && $_POST["password"]==PREF_ADMIN_PASS)
 		{
 			$_SESSION["logged_status"]=1;
-			$_SESSION["admin_status"]=1;
+			$_SESSION["admin_status"]=SITE_ADMIN;
 			$_SESSION["logged_username"]=$_POST["login"];
 			$_SESSION["logged_nom_adh"]=_T("Administrateur");
 			dblog(_T("Identification"));
@@ -46,8 +46,8 @@
 			$resultat = &$DB->Execute($requete);
 			if (!$resultat->EOF)
 			{
-				if ($resultat->fields[1]=="1")
-					$_SESSION["admin_status"]=1;
+				if ($resultat->fields[1] != 0)
+					$_SESSION["admin_status"]=$resultat->fields[1];
 				$_SESSION["logged_id_adh"]=$resultat->fields[0];
 				$_SESSION["logged_status"]=1;
 				$_SESSION["logged_nom_adh"]=strtoupper($resultat->fields[2]) . " " . strtolower($resultat->fields[3]);
@@ -76,6 +76,8 @@
 	<TR>
 		<TD align="center">
 			<IMG src="images/galette.jpg" alt="[ Galette ]" width="103" height="80"><BR>
+			<BR><BR><BR><b>Veuillez utiliser l'identifiant et le mot de passe<br>qui vous ont été transmis par l'administrateur !<br>
+			<br>Vous ne pouvez plus utiliser le compte d'administration...</b><BR><BR><BR>
 			<FORM action="index.php" method="post"> 
 				<B class="title"><? echo _T("Identification"); ?></B><BR>
 				<BR>

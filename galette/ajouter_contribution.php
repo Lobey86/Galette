@@ -317,8 +317,10 @@
 										<option value="" <? isSelected($id_adh,"") ?>><? echo _T("-- selectionner un nom --"); ?></option>
 									<?
 										$requete = "SELECT id_adh, nom_adh, prenom_adh
-		 														FROM ".PREFIX_DB."adherents
-		 														ORDER BY nom_adh, prenom_adh";
+		 														FROM ".PREFIX_DB."adherents ";
+										if ($_SESSION["admin_status"] < FULL_ADMIN)
+											$requete .= "WHERE id_groupe = '".$_SESSION["admin_status"]."' ";
+		 								$requete .= "ORDER BY nom_adh, prenom_adh";
 										$result = &$DB->Execute($requete);
 										while (!$result->EOF)
 										{									
@@ -359,8 +361,18 @@
 							</tr>
 							<tr> 
 								<TH id="libelle" <? echo $date_cotis_req ?>><? echo _T("Date contribution :"); ?><br>&nbsp;</TH> 
-								<td colspan="3"><input type="text" name="date_cotis" value="<? echo $date_cotis; ?>" maxlength="10"><BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></td> 
-						  </tr> 
+								<td colspan="3"><input type="text" name="date_cotis" id="date_cotis" value="<? echo $date_cotis; ?>" maxlength="10">
+								<img src="jscalendar/img.gif" id="f_trigger_c" style="cursor: pointer; border: 1px solid red;" title="Selecteur de date"  onmouseover="this.style.background='red';" onmouseout="this.style.background=''" />
+								 <BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></td> 
+<script type="text/javascript">
+    Calendar.setup({
+        inputField     :    "date_cotis",     // id of the input field
+        ifFormat       :    "%d/%m/%Y",      // format of the input field
+        button         :    "f_trigger_c",  // trigger for the calendar (button ID)
+        align          :    "Bl",           // alignment (defaults to "Bl")
+        singleClick    :    true
+    });
+</script>						  </tr> 
 							<tr> 
 								<TH id="libelle" <? echo $info_cotis_req ?>><? echo _T("Commentaire :"); ?></TH> 
 								<td colspan="3"><textarea name="info_cotis" cols="61" rows="6"><? echo $info_cotis; ?></textarea></td> 

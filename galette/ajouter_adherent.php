@@ -31,6 +31,7 @@
 	// On vérifie si on a une référence => modif ou création
 	$id_adh = "";
 	$date_crea_adh = "";
+	$id_groupe = "";
 	if (isset($_GET["id_adh"]))
 		if (is_numeric($_GET["id_adh"]))
 			$id_adh = $_GET["id_adh"];
@@ -38,9 +39,26 @@
 		if (is_numeric($_POST["id_adh"]))
 			$id_adh = $_POST["id_adh"];
 
+	$id_groupe="";
+	if ($id_adh != "")
+	{
+			$requete = "SELECT id_groupe
+					    FROM ".PREFIX_DB."adherents
+					    WHERE id_adh=". $id_adh;
+			$result = &$DB->Execute($requete);
+			if (!$result->EOF)
+				$id_groupe = $result->fields[0];
+	}
+	
 	// Si c'est un user qui est loggé, on va à sa fiche
-	if ($_SESSION["admin_status"]!=1) 
+	if ($_SESSION["admin_status"]==0)
 		$id_adh = $_SESSION["logged_id_adh"];
+
+	// Si ce n'est pas une creation (creation => $id_adh et $id_groupe = "")
+	// Si c'est un admin qui est loggé, mais le groupe n'est pas celui dont il est administrateur: on va à sa fiche
+	if ($id_groupe != "")
+		if (($_SESSION["admin_status"]<FULL_ADMIN)&&($_SESSION["admin_status"] != $id_groupe))
+			$id_adh = $_SESSION["logged_id_adh"];
 
 	// variables d'erreur (pour affichage)	    
  	$error_detected = "";
@@ -114,7 +132,7 @@
 			
 			// on précise les champs non modifiables
 			if (
-				($_SESSION["admin_status"]==1 && $fieldname!="id_adh"
+				($_SESSION["admin_status"]!=0 && $fieldname!="id_adh"
 							      && $fieldname!="date_echeance") ||
 			    	($_SESSION["admin_status"]==0 && $fieldname!="date_crea_adh"
 			    				      && $fieldname!="id_adh"
@@ -125,8 +143,19 @@
 			    				      && $fieldname!="activite_adh"
 			    				      && $fieldname!="bool_exempt_adh"
 			    				      && $fieldname!="bool_admin_adh"
+			    				      && $fieldname!="referent"
 			    				      && $fieldname!="date_echeance"
-			    				      && $fieldname!="info_adh")
+                                                              && $fieldname!="info_adh"
+                                                              && $fieldname!="id_groupe"
+                                                              && $fieldname!="id_lic"
+                                                              && $fieldname!="lic_adh"
+                                                              && $fieldname!="date_licence"
+                                                              && $fieldname!="id_categorie"
+                                                              && $fieldname!="medecin_certif"
+                                                              && $fieldname!="date_certif"
+                                                              && $fieldname!="enveloppe"
+                                                              && $fieldname!="photo"
+                                                              && $fieldname!="participation_vet")
 			   )
 			{			
 				if (isset($_POST[$fieldname]))
@@ -140,7 +169,8 @@
 		
 				// vérification de la présence des champs obligatoires
 				if ($$fieldreq!="" && $post_value=="")
-				  $error_detected .= "<LI>"._T("- Champ obligatoire non renseigné.")."</LI>";
+                                  $error_detected .= "<LI>"._T("- Champ obligatoire non renseigné: $champ ($fieldname).")."</LI>";
+
 				else
 				{
 					// validation des dates				
@@ -230,10 +260,14 @@
  		 	{
  		 		// modif
  		 		
-				$requete = "UPDATE ".PREFIX_DB."adherents
- 		 			    SET " . substr($update_string,1) . " 
- 		 			    WHERE id_adh=" . $id_adh;
-				$DB->Execute($requete);
+				$requete = "UPDATE ".PREFIX_DB."adherents SET " . substr($update_string,1) . " WHERE id_adh=" . $id_adh;
+                                //echo $requete."<br>\n";
+				$res = $DB->Execute($requete);
+                                //if (!$res)
+                                //    echo "Error: ".$DB->ErrorMsg()."<br>\n";
+                                //else
+                                //    echo "Requête OK.<br>\n";
+
 				dblog(_T("Mise à jour de la fiche adhérent :")." ".strtoupper($_POST["nom_adh"])." ".$_POST["prenom_adh"], $requete);
 
 				$date_fin = get_echeance($DB, $id_adh);
@@ -242,22 +276,23 @@
 					$date_fin_update = $DB->DBDate($date_fin[2].'/'.$date_fin[1].'/'.$date_fin[0]);
 				else
 					$date_fin_update = "NULL";
-				$requete = "UPDATE ".PREFIX_DB."adherents
-					    SET date_echeance=".$date_fin_update."
-					    WHERE id_adh=" . $id_adh;
+				$requete = "UPDATE ".PREFIX_DB."adherents SET date_echeance=".$date_fin_update." WHERE id_adh=" . $id_adh;
+                                //echo $requete."<br>\n";
   			}
  		 	else
  		 	{
   			// ajout
  			$insert_string_fields = substr($insert_string_fields,1);
 			$insert_string_values = substr($insert_string_values,1);
-  			$requete = "INSERT INTO ".PREFIX_DB."adherents
-  				    (" . $insert_string_fields . ") 
-  				    VALUES (" . $insert_string_values . ")";
+  			$requete = "INSERT INTO ".PREFIX_DB."adherents (" . $insert_string_fields . ") VALUES (" . $insert_string_values . ")";
 			dblog(_T("Ajout de la fiche adhérent :")." ".strtoupper($_POST["nom_adh"])." ".$_POST["prenom_adh"], $requete);
   							
   		}
-			$DB->Execute($requete);
+			$res = $DB->Execute($requete);
+                        //if (!$res)
+                        //   echo "Error: ".$DB->ErrorMsg()."<br>\n";
+                        //else
+                        //   echo "Requête OK.<br>\n";
 			
 			// il est temps d'envoyer un mail
 			if (isset($_POST["mail_confirm"]))
@@ -336,7 +371,7 @@
 			 	else
 				{
 					if (function_exists("imagegif"))
-			 			$warning_detected .= "<LI>"._T("- Le fichier transmis n'est pas une image valide (GIF, PNG ou JPEG). L'enregistrement a cependant été effectué.")."</LI>"; 
+			 			$warning_detected .= "<LI>"._T("- Le fichier transmis n'est pas une image valide (GIF, PNG ou JPEG). L'enregistrement a cependant été effectué.").$_FILES['photo']['type']."</LI>"; 
 					else
 			 			$warning_detected .= "<LI>"._T("- Le fichier transmis n'est pas une image valide (PNG ou JPEG). L'enregistrement a cependant été effectué.")."</LI>"; 
 				}
@@ -385,9 +420,7 @@
 
 	{
 		// recup des données
-		$requete = "SELECT * 
-								FROM ".PREFIX_DB."adherents 
-			  				WHERE id_adh=$id_adh";
+		$requete = "SELECT * FROM ".PREFIX_DB."adherents WHERE id_adh=$id_adh";
 		$result = &$DB->Execute($requete);
         	if ($result->EOF)
 	                header("location: index.php");
@@ -446,7 +479,6 @@
 
 
 	include("header.php");
-
 ?> 
  
 						<H1 class="titre"><? echo _T("Fiche adhérent"); ?> (<? if ($id_adh!="") echo _T("modification"); else echo _T("création"); ?>)</H1>
@@ -532,7 +564,18 @@
 						  </TR> 
 							<TR> 
 								<TH <? echo $ddn_adh_req ?> id="libelle"><? echo _T("Date de naissance :"); ?><br>&nbsp;</TH> 
-								<TD><INPUT type="text" name="ddn_adh" value="<? echo $ddn_adh; ?>" maxlength="10"><BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD>
+								<TD><INPUT type="text" name="ddn_adh" id="ddn_adh" value="<? echo $ddn_adh; ?>" maxlength="10">
+								<img src="jscalendar/img.gif" id="f_trigger_c" style="cursor: pointer; border: 1px solid red;" title="Selecteur de date"  onmouseover="this.style.background='red';" onmouseout="this.style.background=''" />
+								  <BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD>
+<script type="text/javascript">
+    Calendar.setup({
+        inputField     :    "ddn_adh",     // id of the input field
+        ifFormat       :    "%d/%m/%Y",      // format of the input field
+        button         :    "f_trigger_c",  // trigger for the calendar (button ID)
+        align          :    "Bl",           // alignment (defaults to "Bl")
+        singleClick    :    true
+    });
+</script>
 							</TR>
 							<TR>
 							  <TH <? echo $prof_adh_req ?> id="libelle"><? echo _T("Profession :"); ?></TH> 
@@ -601,8 +644,55 @@
 								<TH id="header" colspan="2">&nbsp;</TH>
 							</TR>
 							<TR> 
-								<TH id="libelle"><? echo _T("Admin Galette :"); ?></TH> 
-								<TD><input type="checkbox" name="bool_admin_adh" value="1"<? isChecked($bool_admin_adh,"1") ?>></TD> 
+								<TH <? echo $bool_admin_adh_req ?> id="libelle"><? echo _T("Admin Galette :"); ?></TH> 
+								<TD>
+									<SELECT name="bool_admin_adh">
+										<OPTION value="0"<? isSelected("0",$bool_admin_adh) ?>><? echo _T("Non"); ?></OPTION>
+										<?
+											$requete = "SELECT *
+		 									    FROM ".PREFIX_DB."groupes";
+											if ($_SESSION["admin_status"]<FULL_ADMIN)
+												$requete .= " where id_groupe ='".$_SESSION["admin_status"]."'";
+											$result = &$DB->Execute($requete);
+											while (!$result->EOF)
+										{									
+										?>
+										<OPTION value="<? echo $result->fields["id_groupe"] ?>"<? isSelected($bool_admin_adh,$result->fields["id_groupe"]) ?>><? echo _T("Groupe ".$result->fields["libelle_groupe"]); ?></OPTION>
+										<?										
+											$result->MoveNext();
+										}
+										$result->Close();
+										if ($_SESSION["admin_status"]>=FULL_ADMIN)
+										{
+										?>
+										<OPTION value="<? echo FULL_ADMIN ?>" <? isSelected(FULL_ADMIN,$bool_admin_adh) ?>><? echo _T("Tous les groupes"); ?></OPTION>
+										<? } ?>
+									</SELECT>
+								</TD> 
+								<TH id="header" colspan="2">&nbsp;</TH>
+						  	</TR> 
+							<TR> 
+								<TH <? echo $referent_req ?> id="libelle"><? echo _T("Référent :"); ?></TH> 
+								<TD>
+									<SELECT name="referent">
+										<OPTION value="0"<? isSelected("0",$referent) ?>><? echo _T("Non"); ?></OPTION>
+										<?
+											$requete = "SELECT *
+		 									    FROM ".PREFIX_DB."groupes";
+											if ($_SESSION["admin_status"]<FULL_ADMIN)
+												$requete .= " where id_groupe ='".$_SESSION["admin_status"]."'";
+											$result = &$DB->Execute($requete);
+											while (!$result->EOF)
+										{									
+										?>
+										<OPTION value="<? echo $result->fields["id_groupe"] ?>"<? isSelected($referent,$result->fields["id_groupe"]) ?>><? echo _T("Groupe ".$result->fields["libelle_groupe"]); ?></OPTION>
+										<?										
+											$result->MoveNext();
+										}
+										$result->Close();
+										?>
+									</SELECT>
+								</TD> 
 								<TH id="header" colspan="2">&nbsp;</TH>
 						  	</TR> 
 							<TR> 
@@ -638,10 +728,16 @@
 							<TR> 
 								<TH id="libelle" <? echo $gsm_adh_req ?>><? echo _T("GSM :"); ?></TH> 
 								<TD><INPUT type="text" name="gsm_adh" value="<? echo $gsm_adh; ?>" maxlength="<? echo $gsm_adh_len; ?>"></TD> 
-								<TH id="libelle" <? echo $email_adh_req ?>><? echo _T("E-Mail :"); ?></TH> 
-								<TD><INPUT type="text" name="email_adh" value="<? echo $email_adh; ?>" maxlength="<? echo $email_adh_len; ?>" size="30"></TD> 
+								<TH id="libelle" <? echo $tel_pro_adh_req ?>><? echo _T("Tel prof. :"); ?></TH> 
+								<TD><INPUT type="text" name="tel_pro_adh" value="<? echo $tel_pro_adh; ?>" maxlength="<? echo $tel_pro_adh_len; ?>"></TD> 
 						  </TR> 
 							<TR> 
+								<TH id="libelle" <? echo $email_adh_req ?>><? echo _T("E-Mail :"); ?></TH> 
+								<TD><INPUT type="text" name="email_adh" value="<? echo $email_adh; ?>" maxlength="<? echo $email_adh_len; ?>" size="30"></TD> 
+								<TH id="libelle" <? echo $email_pro_adh_req ?>><? echo _T("E-Mail prof.:"); ?></TH> 
+								<TD><INPUT type="text" name="email_pro_adh" value="<? echo $email_pro_adh; ?>" maxlength="<? echo $email_pro_adh_len; ?>" size="30"></TD> 
+						</TR>
+							<TR>
 								<TH id="libelle" <? echo $url_adh_req ?>><? echo _T("Site Web :"); ?></TH> 
 								<TD><INPUT type="text" name="url_adh" value="<? echo $url_adh; ?>" maxlength="<? echo $url_adh_len; ?>" size="30"></TD> 
 								<TH id="libelle" <? echo $icq_adh_req ?>><? echo _T("ICQ :"); ?></TH> 
@@ -653,6 +749,184 @@
 								<TH id="libelle" <? echo $msn_adh_req ?>><? echo _T("MSN :"); ?></TH> 
 								<TD><INPUT type="text" name="msn_adh" value="<? echo $msn_adh; ?>" maxlength="<? echo $msn_adh_len; ?>" size="30"></TD> 
 						  </TR> 
+							<TR> 
+								<TH colspan="4" id="header">&nbsp;</TH> 
+							</TR>
+<?
+	if ($_SESSION["admin_status"]!=0)
+	{
+?>
+							<TR> 
+								<TH <? echo $id_groupe_req ?> id="libelle"><? echo _T("Groupe :"); ?></TH> 
+								<TD>
+									<SELECT name="id_groupe">
+									<?
+										$requete = "SELECT *
+		 									    FROM ".PREFIX_DB."groupes";
+										if (($id_adh == "")&&($id_groupe=="")&&($_SESSION["admin_status"]<FULL_ADMIN))
+											$requete .= " where id_groupe ='".$_SESSION["admin_status"]."'";
+										$result = &$DB->Execute($requete);
+										while (!$result->EOF)
+										{									
+									?>
+										<OPTION value="<? echo $result->fields["id_groupe"] ?>"<? isSelected($id_groupe,$result->fields["id_groupe"]) ?>><? echo _T($result->fields["libelle_groupe"]); ?></OPTION>
+									<?
+											$result->MoveNext();
+										}
+										$result->Close();
+									?>
+									</SELECT>
+								</TD>
+								<TH id="header" colspan="2">&nbsp;</TH>
+							</TR>
+							<TR> 
+								<TH colspan="4" id="header">&nbsp;</TH> 
+							</TR>
+							<TR> 
+								<TH <? echo $id_lic_req ?> id="libelle"><? echo _T("Licence :"); ?></TH> 
+								<TD>
+									<SELECT name="id_lic">
+									<?
+										$requete = "SELECT *
+		 									    FROM ".PREFIX_DB."types_licences";
+										$result = &$DB->Execute($requete);
+										while (!$result->EOF)
+										{									
+									?>
+										<OPTION value="<? echo $result->fields["id_type_lic"] ?>"<? isSelected($id_lic,$result->fields["id_type_lic"]) ?>><? echo _T($result->fields["libelle_type_lic"]); ?></OPTION>
+									<?
+											$result->MoveNext();
+										}
+										$result->Close();
+									?>
+									</SELECT>
+								</TD>
+								<TH id="libelle" <? echo $lic_adh_req ?>><? echo _T("N° :"); ?></TH> 
+								<TD><INPUT type="text" name="lic_adh" value="<? echo $lic_adh; ?>" maxlength="<? echo $lic_adh_len; ?>" size="30"></TD> 
+							</TR>
+							<TR>
+								<TH id="libelle" <? echo $date_licence_req ?>><? echo _T("Date de saisie :"); ?><BR>&nbsp;</TH> 
+								<TD><INPUT type="text" name="date_licence" id="date_licence" value="<? echo $date_licence; ?>" maxlength="<? echo $date_licence_len; ?>">
+								 <img src="jscalendar/img.gif" id="f_trigger_c2" style="cursor: pointer; border: 1px solid red;" title="Selecteur de date" onmouseover="this.style.background='red';" onmouseout="this.style.background=''" />
+								  <BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD> 
+<script type="text/javascript">
+    Calendar.setup({
+        inputField     :    "date_licence",     // id of the input field
+        ifFormat       :    "%d/%m/%Y",      // format of the input field
+        button         :    "f_trigger_c2",  // trigger for the calendar (button ID)
+        align          :    "Bl",           // alignment (defaults to "Bl")
+        singleClick    :    true
+    });
+</script>
+								<TH id="libelle" <? echo $id_categorie_req ?>><? echo _T("Categorie :"); ?><BR>&nbsp;</TH> 
+								<TD>
+									<SELECT name="id_categorie">
+									<?
+										$requete = "SELECT *
+		 									    FROM ".PREFIX_DB."categories";
+										$result = &$DB->Execute($requete);
+										while (!$result->EOF)
+										{									
+									?>
+										<OPTION value="<? echo $result->fields["id_categorie"] ?>"<? isSelected($id_categorie,$result->fields["id_categorie"]) ?>><? echo _T($result->fields["libelle_categorie"]); ?></OPTION>
+									<?
+											$result->MoveNext();
+										}
+										$result->Close();
+									?>
+									</SELECT>
+								</TD>
+						  </TR>
+							<TR> 
+								<TH id="libelle" <? echo $date_certif_req ?>><? echo _T("Date certif. médical :"); ?><BR>&nbsp;</TH> 
+								<TD><INPUT type="text" name="date_certif" id="date_certif" value="<? echo $date_certif; ?>" maxlength="<? echo $date_certif_len; ?>">
+								<img src="jscalendar/img.gif" id="f_trigger_c3" style="cursor: pointer; border: 1px solid red;" title="Selecteur de date"  onmouseover="this.style.background='red';" onmouseout="this.style.background=''" />
+								 <BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD> 
+<script type="text/javascript">
+    Calendar.setup({
+        inputField     :    "date_certif",     // id of the input field
+        ifFormat       :    "%d/%m/%Y",      // format of the input field
+        button         :    "f_trigger_c3",  // trigger for the calendar (button ID)
+        align          :    "Bl",           // alignment (defaults to "Bl")
+        singleClick    :    true
+    });
+</script>
+								<TH id="libelle" <? echo $medecin_certif_req ?>><? echo _T("Médecin :"); ?><BR>&nbsp;</TH> 
+								<TD><INPUT type="text" name="medecin_certif" value="<? echo $medecin_certif; ?>" maxlength="<? echo $medecin_certif_len; ?>"></TD> 
+						</TR>
+<?
+	}
+?>							<TR> 
+								<TH colspan="4" id="header">&nbsp;</TH> 
+							</TR>
+					<TR>
+						<TH id="libelle" colspan="4" align="center"><B><? echo _T("Autorisation de diffuser"); ?></B></TD>
+					</TR>
+							<TR> 
+								<TH id="libelle" <? echo $dif_email ?>><? echo _T("E-mail :"); ?><BR>&nbsp;</TH> 
+								<TD>
+								  <SELECT name="dif_email">
+								  	<OPTION value="OUI"<? isSelected($dif_email,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($dif_email,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+								<TH id="libelle" <? echo $dif_tel ?>><? echo _T("Tel :"); ?><BR>&nbsp;</TH> 
+								<TD>
+								  <SELECT name="dif_tel">
+								  	<OPTION value="OUI"<? isSelected($dif_tel,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($dif_tel,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+					</TR>
+							<TR> 
+								<TH id="libelle" <? echo $dif_image ?>><? echo _T("Photos :"); ?><BR>&nbsp;</TH> 
+								<TD colspan="3">
+								  <SELECT name="dif_image">
+								  	<OPTION value="OUI"<? isSelected($dif_image,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($dif_image,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+					</TR>
+<?
+	if ($_SESSION["admin_status"]!=0)
+	{
+?>							<TR> 
+								<TH colspan="4" id="header">&nbsp;</TH> 
+							</TR>
+					<TR>
+						<TH id="libelle" colspan="4" align="center"><B><? echo _T("Eléments constitutifs du dossier"); ?></B></TD>
+					</TR>
+							<TR> 
+								<TH id="libelle" <? echo $enveloppe ?>><? echo _T("Enveloppe :"); ?><BR>&nbsp;</TH> 
+								<TD>
+								  <SELECT name="enveloppe">
+								  	<OPTION value="OUI"<? isSelected($enveloppe,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($enveloppe,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+								<TH id="libelle" <? echo $photo ?>><? echo _T("Photo(s) :"); ?><BR>&nbsp;</TH> 
+								<TD>
+								  <SELECT name="photo">
+								  	<OPTION value="OUI"<? isSelected($photo,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($photo,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+					</TR>
+							<TR> 
+								<TH colspan="4" id="header">&nbsp;</TH> 
+							</TR>
+							<TR> 
+							</TR>
+								<TH id="libelle" <? echo $participation_vet ?>><? echo _T("Participation Club achat vêtement :"); ?><BR>&nbsp;</TH> 
+								<TD colspan="3">
+								  <SELECT name="participation_vet">
+								  	<OPTION value="OUI"<? isSelected($participation_vet,"OUI") ?>><? echo _T("OUI"); ?></OPTION>
+								  	<OPTION value="NON"<? isSelected($participation_vet,"NON") ?>><? echo _T("NON"); ?></OPTION>
+									</SELECT>
+								</TD>
+<?
+	}
+?>
 							<TR> 
 								<TH colspan="4" id="header">&nbsp;</TH> 
 							</TR>
@@ -672,7 +946,18 @@
 						  </TR> 
 							<TR> 
 								<TH id="libelle"><? echo _T("Date de création :"); ?><BR>&nbsp;</TH> 
-								<TD colspan="3"><INPUT type="text" name="date_crea_adh" value="<? echo $date_crea_adh; ?>" maxlength="10"><BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD> 
+								<TD colspan="3"><INPUT type="text" name="date_crea_adh" id="date_crea_adh" value="<? echo $date_crea_adh; ?>" maxlength="10">
+								<img src="jscalendar/img.gif" id="f_trigger_c4" style="cursor: pointer; border: 1px solid red;" title="Selecteur de date"  onmouseover="this.style.background='red';" onmouseout="this.style.background=''" />
+								 <BR><DIV class="exemple"><? echo _T("(format jj/mm/aaaa)"); ?></DIV></TD> 
+<script type="text/javascript">
+    Calendar.setup({
+        inputField     :    "date_crea_adh",     // id of the input field
+        ifFormat       :    "%d/%m/%Y",      // format of the input field
+        button         :    "f_trigger_c4",  // trigger for the calendar (button ID)
+        align          :    "Bl",           // alignment (defaults to "Bl")
+        singleClick    :    true
+    });
+</script>
 						  </TR> 
 							<TR> 
 								<TH id="libelle" <? echo $info_adh_req ?>><? echo _T("Autres informations (admin) :"); ?></TH> 

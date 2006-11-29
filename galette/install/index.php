@@ -1,13 +1,15 @@
 <?
 	session_start();
-	define("WEB_ROOT", realpath(dirname($_SERVER["SCRIPT_FILENAME"])."/../")."/");
+	$fullpath = str_replace("\\", "/", realpath(dirname($_SERVER["SCRIPT_FILENAME"])."/../"));
+	define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
+	define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
 	$step="1";
 	$error_detected="";
 	
 	// traitement page 1 - language
 	if (isset($_POST["install_lang"]))
 	{
-		if (file_exists(WEB_ROOT . "lang/lang_" . $_POST["install_lang"] . ".php"))
+		if (file_exists(WEB_ROOT . "/lang/lang_" . $_POST["install_lang"] . ".php"))
 		{
 			define("PREF_LANG",$_POST["install_lang"]);
 			$step="2";
@@ -177,10 +179,17 @@
 		<P>
 			<INPUT type="radio" name="install_type" value="upgrade-<? echo $val; ?>"> <? echo _T("Mise à jour :"); ?><BR>
 <?
+				if (ereg("(.*)-sport",$val,$ver))
+				{
+					echo _T("Votre version actuelle de Galette est la")." ".$ver[1]."<br>";				
+				}
+				else
+				{
 				if ($last!=number_format($val-0.01,2))
 					echo _T("Votre version actuelle de Galette est comprise entre")." ".$last." "._T("et")." ".number_format($val-0.01,2)."<br>";
 				else
 					echo _T("Votre version actuelle de Galette est la")." ".number_format($val-0.01,2)."<br>";
+				}
 				$last = $val;
 				echo _T("Attention : Pensez à sauvegarder votre base existante.");
 ?>
@@ -663,6 +672,7 @@
 				$update_scripts["current"] = $_POST["install_dbtype"].".sql";
 
 			ksort($update_scripts);
+
 			$sql_query = "";
 			while(list($key,$val)=each($update_scripts))
 				$sql_query .= @fread(@fopen("sql/".$val, 'r'), @filesize("sql/".$val))."\n";
@@ -812,7 +822,7 @@
 <?
 			// création du fichier de configuration
 			
-			if($fd = @fopen (WEB_ROOT ."includes/config.inc.php", "w"))
+			if($fd = @fopen (WEB_ROOT ."/includes/config.inc.php", "w"))
 			{
 				$data = "<?
 define(\"TYPE_DB\", \"".$_POST["install_dbtype"]."\");
@@ -820,8 +830,10 @@ define(\"HOST_DB\", \"".$_POST["install_dbhost"]."\");
 define(\"USER_DB\", \"".$_POST["install_dbuser"]."\");
 define(\"PWD_DB\", \"".$_POST["install_dbpass"]."\");
 define(\"NAME_DB\", \"".$_POST["install_dbname"]."\");
-define(\"WEB_ROOT\", \"".WEB_ROOT."\");
+define(\"WEB_ROOT\", \$_SERVER['DOCUMENT_ROOT'].\"/".RELATIVE_PATH."/\");
 define(\"PREFIX_DB\", \"".$_POST["install_dbprefix"]."\");
+define(\"FULL_ADMIN\", 99);
+define(\"SITE_ADMIN\", (FULL_ADMIN + 1));
 ?>";
 				fwrite($fd,$data);
 				fclose($fd);	

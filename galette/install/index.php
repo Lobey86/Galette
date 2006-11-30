@@ -1,8 +1,20 @@
 <?
 	session_start();
 	$fullpath = str_replace("\\", "/", realpath(dirname($_SERVER["SCRIPT_FILENAME"])."/../"));
-	define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
-	define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
+	if (stristr($fullpath, $_SERVER['DOCUMENT_ROOT']))
+	{
+		define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
+		define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
+	}
+	else
+	{
+		define("RELATIVE_PATH", "");
+		define("WEB_ROOT", $fullpath."/"); 
+	}
+	//echo "fullpath       = ".$fullpath."<br>\n";
+	//echo "\$_SERVER['DOCUMENT_ROOT'] = ".$_SERVER['DOCUMENT_ROOT']."<br>\n";
+	//echo "RELATIVE_PATH  = ".RELATIVE_PATH."<br>\n";
+	//echo "WEB_ROOT       = ".WEB_ROOT."<br>\n";
 	$step="1";
 	$error_detected="";
 	
@@ -829,9 +841,15 @@ define(\"TYPE_DB\", \"".$_POST["install_dbtype"]."\");
 define(\"HOST_DB\", \"".$_POST["install_dbhost"]."\");
 define(\"USER_DB\", \"".$_POST["install_dbuser"]."\");
 define(\"PWD_DB\", \"".$_POST["install_dbpass"]."\");
-define(\"NAME_DB\", \"".$_POST["install_dbname"]."\");
-define(\"WEB_ROOT\", \$_SERVER['DOCUMENT_ROOT'].\"/".RELATIVE_PATH."/\");
-define(\"PREFIX_DB\", \"".$_POST["install_dbprefix"]."\");
+define(\"NAME_DB\", \"".$_POST["install_dbname"]."\");\n";
+				fwrite($fd,$data);
+if (RELATIVE_PATH == "")
+	$data= "define(\"WEB_ROOT\", \"".WEB_ROOT."\");\n";
+else
+	$data = "define(\"WEB_ROOT\", \$_SERVER['DOCUMENT_ROOT'].\"/".RELATIVE_PATH."/\");\n";
+				fwrite($fd,$data);
+
+				$data = "define(\"PREFIX_DB\", \"".$_POST["install_dbprefix"]."\");
 define(\"FULL_ADMIN\", 99);
 define(\"SITE_ADMIN\", (FULL_ADMIN + 1));
 ?>";
@@ -1003,3 +1021,4 @@ define(\"SITE_ADMIN\", (FULL_ADMIN + 1));
 	
 </BODY>
 </HTML>
+

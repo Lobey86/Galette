@@ -3,11 +3,22 @@
 	$fullpath = str_replace("\\", "/", realpath(dirname($_SERVER["SCRIPT_FILENAME"])."/../"));
 	if (stristr($fullpath, $_SERVER['DOCUMENT_ROOT']))
 	{
-		define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
-		define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
+		//echo "if !<br>\n";
+		if ($fullpath == $_SERVER['DOCUMENT_ROOT'])
+		{
+			define("RELATIVE_PATH", ".");
+			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/");
+		}
+		else
+		{
+			define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
+			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
+		}
+
 	}
 	else
 	{
+		//echo "else !<br>\n";
 		define("RELATIVE_PATH", "");
 		define("WEB_ROOT", $fullpath."/"); 
 	}
@@ -845,6 +856,8 @@ define(\"NAME_DB\", \"".$_POST["install_dbname"]."\");\n";
 				fwrite($fd,$data);
 if (RELATIVE_PATH == "")
 	$data= "define(\"WEB_ROOT\", \"".WEB_ROOT."\");\n";
+else if (RELATIVE_PATH == ".")
+	$data = "define(\"WEB_ROOT\", \$_SERVER['DOCUMENT_ROOT'].\"/\");\n";
 else
 	$data = "define(\"WEB_ROOT\", \$_SERVER['DOCUMENT_ROOT'].\"/".RELATIVE_PATH."/\");\n";
 				fwrite($fd,$data);

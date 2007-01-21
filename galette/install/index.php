@@ -1,18 +1,20 @@
 <?
 	session_start();
 	$fullpath = str_replace("\\", "/", realpath(dirname($_SERVER["SCRIPT_FILENAME"])."/../"));
+        if (preg_match('/.*\/$/', $_SERVER['DOCUMENT_ROOT']))
+                $trailingslash="";
 	if (stristr($fullpath, $_SERVER['DOCUMENT_ROOT']))
 	{
 		//echo "if !<br>\n";
 		if ($fullpath == $_SERVER['DOCUMENT_ROOT'])
 		{
 			define("RELATIVE_PATH", ".");
-			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/");
+			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT'].$trailingslash);
 		}
 		else
 		{
-			define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT']."/", "", $fullpath));
-			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT']."/".RELATIVE_PATH."/");
+			define("RELATIVE_PATH", str_replace($_SERVER['DOCUMENT_ROOT'].$trailingslash, "", $fullpath));
+			define("WEB_ROOT", $_SERVER['DOCUMENT_ROOT'].$trailingslash.RELATIVE_PATH."/");
 		}
 
 	}

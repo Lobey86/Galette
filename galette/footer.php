@@ -55,6 +55,8 @@
 ?>
 				<LI><A href="log.php"><? echo _T("Historique"); ?></A></LI>
 				<LI><A href="preferences.php"><? echo _T("Préférences"); ?></A></LI>
+				<LI><A href="import.php"><? echo _T("Import CSV"); ?></A></LI>
+				<LI><A href="export.php"><? echo _T("Export CSV"); ?></A></LI>
 <?
 	}
 	else

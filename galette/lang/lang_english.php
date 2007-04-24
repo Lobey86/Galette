@@ -391,4 +391,17 @@ $lang["Randonnée"]="Randonnée";
 $lang["Initiation Vitesse"]="Initiation Vitesse";
 $lang["Compétition"]="Compétition";
 $lang["N° :"]="# :";
+$lang["Import fichier CSV"]="CSV file import";
+$lang["Fichier CSV à importer"]="CSV file to import";
+$lang["Fichier"]="File";
+$lang["Caractère de séparation"]="separator field";
+$lang["virgule"]="comma";
+$lang["point-virgule"]="semi-column";
+$lang["Importer"]="Import";
+$lang["Erreur ouverture du fichier"]="Error opening file";
+$lang["Traitement de"]="Processing of";
+$lang["Mise à jour de"]="Update of";
+$lang["Création de"]="Creation of";
+$lang["Export fichier CSV"]="CSV file export";
 ?>
+

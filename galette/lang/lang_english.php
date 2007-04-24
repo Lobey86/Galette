@@ -403,5 +403,7 @@ $lang["Traitement de"]="Processing of";
 $lang["Mise à jour de"]="Update of";
 $lang["Création de"]="Creation of";
 $lang["Export fichier CSV"]="CSV file export";
+$lang["Importer réellement le contenu du fichier"]="Really import file content";
+$lang["Execution en mode fictif !"]="Execution in fictive mode !";
 ?>
 

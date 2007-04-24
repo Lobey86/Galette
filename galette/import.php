@@ -47,6 +47,8 @@
   <option value="comma">, (<? echo _T("virgule"); ?>)</option>
   <option value="semicol">; (<? echo _T("point-virgule"); ?>)</option>
 </select>
+<!-- check box "pour voir" -->
+<p><input type="checkbox" value="yes" name="doitreally"><? echo _T("Importer réellement le contenu du fichier"); ?></p>
 <!-- bouton d'envoi -->
 <p><input type="submit" name="envoi" value=<? echo _T("Importer"); ?> /></p>
 </legend>
@@ -56,6 +58,7 @@
 <?php
 $csv_sep=',';
 //$csv_sep=';';
+$doitreally=0;
 
 if (isset($_FILES['csvfile']))
 {
@@ -73,6 +76,13 @@ if (isset($_POST['separator'])) {
 	if ($_POST['separator'] == 'semicol')
 		$csv_sep = ';';
 }
+if (isset($_POST['doitreally'])) {
+	if ($_POST['doitreally'] == 'yes')
+		$doitreally=1;
+}
+
+if (!$doitreally)
+	echo "<H1 class=\"titre\">"._T("Execution en mode fictif !")."</H1>";
 
 $file = $_FILES['csvfile']['tmp_name'];
 $handle = fopen($file, "r");
@@ -120,9 +130,11 @@ while (($data = fgetcsv($handle, 1024, $csv_sep)) !== FALSE) {
                 }
 		$requete .= " WHERE id_adh='".$data["id_adh"]."'";
 		echo $requete."<br>\n";
-		$res = $DB->Execute($requete);
-		if (!$res) 
-			echo $DB->ErrorMsg()."<br>\n";
+		if ($doitreally) {
+			$res = $DB->Execute($requete);
+			if (!$res) 
+				echo $DB->ErrorMsg()."<br>\n";
+		}
 
 		echo _T("Mise à jour de")." (".$data["id_adh"].") ".$data["nom_adh"].", ".$data["prenom_adh"]."<br>\n";
 	}
@@ -159,9 +171,10 @@ while (($data = fgetcsv($handle, 1024, $csv_sep)) !== FALSE) {
 
 
 		echo $requete."<br>\n";
-		$res = $DB->Execute($requete);
-		if (!$res) 
-			echo $DB->ErrorMsg()."<br>\n";
+		if ($doitreally) {
+			$res = $DB->Execute($requete);
+			if (!$res) 
+				echo $DB->ErrorMsg()."<br>\n";
 
 		$result = $DB->Execute("SELECT id_adh FROM ".PREFIX_DB."adherents WHERE nom_adh='".$data["nom_adh"]."' AND prenom_adh='".$data["prenom_adh"]."' AND ddn_adh='".$data["ddn_adh"]."'");
 		while (!$result->EOF)
@@ -171,6 +184,9 @@ while (($data = fgetcsv($handle, 1024, $csv_sep)) !== FALSE) {
 			$result->MoveNext();
 		}
 		$result->Close();
+		}
+		else
+			echo _T("Création de")." (id_adh non créé) ".$data["nom_adh"].", ".$data["prenom_adh"]."<br>\n";
 	}
 }
 fclose($handle);

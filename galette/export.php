@@ -20,7 +20,8 @@
  *
  */
 	include("includes/config.inc.php"); 
-    include_once(WEB_ROOT.'/includes/adodb/toexport.inc.php');
+	include_once(WEB_ROOT.'/includes/adodb/toexport.inc.php');
+	include_once(WEB_ROOT.'/includes/adodb/rsfilter.inc.php');
 	include(WEB_ROOT."includes/database.inc.php"); 
 	include(WEB_ROOT."includes/functions.inc.php"); 
 	include(WEB_ROOT."includes/lang.inc.php"); 
@@ -36,10 +37,46 @@
 <H1 class="titre"><? echo _T("Export fichier CSV"); ?></H1>
 
 <?
+function age($naiss)  {
+  list($annee, $mois, $jour) = split('[-.]', $naiss);
+  $today['mois'] = date('n');
+  $today['jour'] = date('j');
+  $today['annee'] = date('Y');
+  $annees = $today['annee'] - $annee;
+  if ($today['mois'] <= $mois) {
+    if ($mois == $today['mois']) {
+      if ($jour > $today['jour'])
+        $annees--;
+      }
+    else
+      $annees--;
+    }
+  return $annees;
+}
+
+function do_filter(&$arr,$rs)
+{
+# Sexe H/F de l'adhérent
+	if ($arr[2] == 1)
+		$arr[2] = "H";
+	else
+		$arr[2] = "F";
+# Age de l'adhérent
+	$arr[3] = age($arr[3]);
+
+# Type de license
+	if ($arr[5] == 1)
+		$arr[5] = "FFRS Loisir Randonnée";
+	else
+		$arr[5] = "FFRS Compétion Course";
+}
+
+
 	$DB = ADONewConnection(TYPE_DB);
 	$DB->debug = false;
 	if(!@$DB->Connect(HOST_DB, USER_DB, PWD_DB, NAME_DB)) die("No database connection...");
 
+        // Export fichier adhérents groupe par groupe
         $result = $DB->Execute("SELECT id_groupe, libelle_groupe FROM ".PREFIX_DB."groupes");
 
 	while (!$result->EOF)
@@ -83,6 +120,7 @@
         }
        	$result->Close();
 
+        // Export fichier adhérents tous groupes confondus
         $requete = "SELECT * FROM ".PREFIX_DB."adherents";
         $rs = $DB->Execute($requete);
         $filename="galette_adherents_full.csv";
@@ -95,6 +133,25 @@
         $records=$rs->PO_RecordCount();
         $rs->Close();
         echo "<br><a href=\"".$filename."\">".$filename."</a> (".$records." records)<br>\n";
+
+        // Export fichier pour statistiques mairie
+        $fields = "nom_adh,prenom_adh,titre_adh,ddn_adh,ville_adh,id_lic";
+        $requete = "SELECT ".$fields." FROM ".PREFIX_DB."adherents WHERE id_statut <> '7'";
+        $rs = $DB->Execute($requete);
+	$rs = RSFilter($rs,'do_filter');
+        $filename="stats_mairie.csv";
+        $fp = fopen($filename, "w");
+        $rs->MoveFirst();
+        if ($fp) {
+	  fwrite($fp, "NOM; PRENOM; SEXE; AGE; VILLE; LICENCE\n");
+          rs2csvfile($rs, $fp, false); # write to file (there is also an rs2tabfile function)
+          fclose($fp);
+        }
+        $records=$rs->PO_RecordCount();
+        $rs->Close();
+           
+        echo "<br><a href=\"".$filename."\">".$filename."</a> (".$records." records)<br>\n";
+
 
 	$DB->Close();
 

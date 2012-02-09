@@ -1,3 +1,4 @@
+{$zform}
 		<form action="{if $login->isLogged()}ajouter_adherent.php{else}self_adherent.php{/if}" method="post" enctype="multipart/form-data" id="form">
 		<div class="bigtable">
 {if $self_adh and $head_redirect}

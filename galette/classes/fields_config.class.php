@@ -303,6 +303,18 @@ class FieldsConfig
         return $this->_all_required;
     }
 
+    /**
+     * Retrieve a specific label
+     *
+     * @param string $k Key
+     *
+     * @return string
+     */
+    public function getLabel($k)
+    {
+        return $this->_all_labels[$k];
+    }
+
     /*public function getLabels(){ return $this->_all_labels; }*/
     /*public function getCategories(){ return $this->_all_categories; }*/
     /*public function getPositions(){ return $this->all_positions; }*/

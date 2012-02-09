@@ -1,18 +1,14 @@
-	<div id="errorbox">
-		<h1>{_T string="- WARNING -"}</h1>
-		<p>{_T string="This page is under construction.<br/>Data are all stored, but <strong>not used anywhere in Galette for now</strong> :-)"}</p>
-	</div>
-	<p id="collapse" class="ui-state-default ui-corner-all">
+	{*<p id="collapse" class="ui-state-default ui-corner-all">
 		<span class="ui-icon ui-icon-circle-arrow-s"/>
 		{_T string="Collapse all"}
-	</p>
+	</p>*}
 	{* TODO: Dynamically generate required tabs entries *}
-	<ul id="tabs">
+	{*<ul id="tabs">
 		<li{if $current eq 'membership'} class="current_tab"{/if}><a href="?table=membership">{_T string="Membership"}</a></li>
 		<li{if $current eq 'members'} class="current_tab"{/if}><a href="?table=members">{_T string="Members"}</a></li>
-	</ul>
+	</ul>*}
 	<form action="config_fields.php" method="post">
-	<div class="tabbed" id="{$current}_tab">
+	<div id="{$current}_tab">
 		<a href="#" title="{_T string="Add a new category"}" id="add_category">{_T string="Add new category"}</a>
 {foreach item=category from=$categories name=categories_list}
 		<fieldset class="cssform large" id="cat_{$smarty.foreach.categories_list.iteration}">

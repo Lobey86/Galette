@@ -383,47 +383,36 @@ class FieldsConfig
     */
     private function _store()
     {
-        global $mdb, $log;
-
-        $stmt = $mdb->prepare(
-            'UPDATE ' . PREFIX_DB . self::TABLE .
-            ' SET required=:required, visible=:visible, position=:position, ' .
-            FieldsCategories::PK . '=:category WHERE table_name=\'' .
-            $this->_table .'\' AND field_id=:field_id',
-            $this->_types,
-            MDB2_PREPARE_MANIP
-        );
-
-        $params = array();
-        foreach ( $this->_categorized_fields as $cat ) {
-            foreach ( $cat as $pos=>$field ) {
-                $params[] = array(
-                    'field_id'    =>    $field['field_id'],
-                    'required'    =>    $field['required'],
-                    'visible'    =>    $field['visible'],
-                    'position'    =>    $pos,
-                    'category'    =>    $field['category']
-                );
-            }
-        }
-
-        $mdb->getDb()->loadModule('Extended', null, false);
-        $mdb->getDb()->extended->executeMultiple($stmt, $params);
-
+        global $zdb, $log;
         $class = get_class($this);
-        if (MDB2::isError($stmt)) {
-            $log->log(
-                '[' . $class . '] An error occured while storing fields ' .
-                'configuration for table `' . $this->_table . '`.' .
-                $stmt->getMessage(),
-                PEAR_LOG_ERR
+
+        try {
+            $zdb->db->beginTransaction();
+            $stmt = $zdb->db->prepare(
+                'UPDATE ' . PREFIX_DB . self::TABLE . ' SET ' .
+                $zdb->db->quoteIdentifier('required') . ' =  :required' .
+                ', ' .  $zdb->db->quoteIdentifier('visible') . ' =  :visible' .
+                ', ' .  $zdb->db->quoteIdentifier('position') . ' =  :position' .
+                ', ' .  $zdb->db->quoteIdentifier(FieldsCategories::PK) . ' =  :category' .
+                ' WHERE ' . $zdb->db->quoteInto('table_name = ?', $this->_table) .
+                ' AND ' .  $zdb->db->quoteIdentifier('field_id') . ' = :field_id'
             );
-            return false;
-        } else {
-            $log->log(
-                '[' . $class . '] Fields configuration stored successfully! ',
-                PEAR_LOG_DEBUG
-            );
+
+            $params = array();
+            foreach ( $this->_categorized_fields as $cat ) {
+                foreach ( $cat as $pos=>$field ) {
+                    $stmt->bindValue(':field_id', $field['field_id']);
+                    $stmt->bindValue(':required', $field['required']);
+                    $stmt->bindValue(':visible', $field['visible'], PDO::PARAM_INT);
+                    $stmt->bindValue(':position', $pos);
+                    $stmt->bindValue(':category', $field['category']);
+
+                    $stmt->execute();
+                }
+            }
+
+            $zdb->db->commit();
+
             $log->log(
                 str_replace(
                     '%s',
@@ -433,8 +422,21 @@ class FieldsConfig
                 ),
                 PEAR_LOG_INFO
             );
-            $stmt->free();
+
             return true;
+        } catch (Exception $e) {
+            $zdb->db->rollBack();
+            $log->log(
+                '[' . $class . '] An error occured while storing fields ' .
+                'configuration for table `' . $this->_table . '`.' .
+                ' | ' . $e->getMessage(),
+                PEAR_LOG_WARNING
+            );
+            $log->log(
+                $e->__toString(),
+                PEAR_LOG_ERR
+            );
+            return false;
         }
     }
 }

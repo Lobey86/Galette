@@ -57,7 +57,7 @@ class FieldsCategories
     const TABLE = 'fields_categories';
     const PK = 'id_field_category';
 
-    private $_labels = array();
+    private $_labels= array();
 
     const ADH_CATEGORY_IDENTITY = 1;
     const ADH_CATEGORY_GALETTE = 2;
@@ -131,7 +131,7 @@ class FieldsCategories
     {
         global $zdb, $log;
 
-        if ( !$this->_labels[$id] ) {
+        if ( !isset($this->_labels[$id]) ) {
             try {
                 $select = new Zend_Db_Select($zdb->db);
                 $select->from(PREFIX_DB . self::TABLE)

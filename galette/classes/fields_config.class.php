@@ -343,7 +343,7 @@ class FieldsConfig
                         }
                     }
 
-                    if ( count($cat) > 0 ) {
+                    if ( count($cat->elements) > 0 ) {
                         $this->_form_elements[] = $cat;
                     }
                 }

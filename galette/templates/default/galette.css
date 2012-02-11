@@ -1633,6 +1633,15 @@ th.bline, td.bline{
     width: 21em;
 }
 
+label.simplelabel {
+    margin: 0;
+    display: inline;
+    width: auto;
+    vertical-align: baseline;
+    background: inherit;
+    font-weight: inherit;
+}
+
 .cssform textarea{
     width:90%;
     height: 150px;

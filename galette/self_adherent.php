@@ -244,8 +244,6 @@ require_once WEB_ROOT . 'classes/forms/form.class.php';
 
 $gform = new GaletteForm(Adherent::TABLE);
 
-$gform->setView(new Zend_View());
-
 $tpl->assign('zform', $gform);
 
 // display page

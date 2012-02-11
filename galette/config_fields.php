@@ -95,6 +95,7 @@ if ( isset($_POST) && count($_POST) > 0 ) {
     //okay, we've got the new array, we send it to the
     //Object that will store it in the database
     $fc->setFields($res);
+    FieldsCategories::setCategories($_POST['categories']);
 }
 
 $tpl->assign('page_title', _T("Fields configuration"));
